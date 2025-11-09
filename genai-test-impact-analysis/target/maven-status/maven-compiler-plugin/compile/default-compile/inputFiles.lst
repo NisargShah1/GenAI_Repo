@@ -1,9 +1,0 @@
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\controller\DiffController.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\ImpactAnalysisApplication.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\model\ImpactedTest.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\model\ImpactResult.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\service\DiffService.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\service\GenAIServiceGemini.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\service\TestDiscoveryService.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\util\GitDiffParser.java
-C:\docs\GenAI\projects\genai-test-impact-gemini\src\main\java\com\example\impact\util\MethodCallGraphExtractor.java
