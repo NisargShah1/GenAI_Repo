@@ -1,0 +1,11 @@
+com\example\impact\util\GitDiffParser.class
+com\example\impact\model\ImpactResult.class
+com\example\impact\service\DiffService.class
+com\example\impact\controller\DiffController.class
+com\example\impact\service\TestDiscoveryService.class
+com\example\impact\ImpactAnalysisApplication.class
+com\example\impact\model\ImpactedTest.class
+com\example\impact\service\GenAIServiceGemini$1.class
+com\example\impact\util\MethodCallGraphExtractor$MethodVisitor.class
+com\example\impact\util\MethodCallGraphExtractor.class
+com\example\impact\service\GenAIServiceGemini.class

@@ -1,0 +1,10 @@
+--- a/src/main/java/com/example/PaymentService.java
++++ b/src/main/java/com/example/PaymentService.java
+@@ -1,6 +1,8 @@
+public class PaymentService {
+    public boolean validatePayment(double amount, String currency) {
+        if (amount <= 0) return false;
++       if (currency == null) throw new IllegalArgumentException("Currency required");
+        return true;
+    }
+}
