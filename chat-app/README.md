@@ -303,3 +303,20 @@ Access the application at `http://localhost:5173`.
 ![alt text](doc/test2.PNG)
 
 ![alt text](doc/test3.PNG)
+
+
+## Future Scope
+
+🔹 RAG pipeline to support multiple databases & applications
+
+🔹 Redis-based caching
+
+🔹 Multi-user session management with chat history
+
+🔹 Evaluation & monitoring of LLM responses
+
+🔹 Production-grade observability
+
+## Architecture (Overall Scope)
+
+![Architecture Diagram](doc/Architecture_Diagram.png)
