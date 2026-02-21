@@ -8,8 +8,7 @@ An AI-powered multi-agent system for analyzing Indian stocks (NSE/BSE). This too
   - **Technical Analyst:** Analyzes price action, moving averages (SMA 50/200), RSI, and MACD.
   - **Fundamental Analyst:** Evaluates key financial metrics (P/E, Market Cap, Beta) and sector positioning.
   - **Sentiment Analyst:** Scans recent news headlines to gauge market sentiment and identify potential catalysts.
-  - **Lead AI Engineer:** Audits code quality and security, delegating fixes to the Code Fixer agent.
-  - **Code Fixer Agent:** Receives feedback from the Lead Engineer and generates corrected code with unit tests.
+  - **Portfolio Manager:** Synthesizes reports from all specialist agents to provide a final Buy/Sell/Hold recommendation.
 - **Indian Market Focus:** Designed specifically for NSE tickers (e.g., `RELIANCE.NS`, `TCS.NS`).
 - **Sector Analysis:** Can analyze top stocks within major sectors like Banking, IT, Auto, etc.
 - **Rich CLI:** Interactive terminal interface with progress indicators and formatted reports.
@@ -49,12 +48,6 @@ Run the main script:
 
 ```bash
 python main.py
-```
-
-Run the Code Review Agent:
-
-```bash
-python review_code.py
 ```
 
 ### Modes:

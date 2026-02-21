@@ -27,6 +27,10 @@ def main():
     # User Input
     ticker_input = console.input("[bold green]Enter Stock Ticker (e.g., RELIANCE, TCS) or Sector (e.g., BANKING): [/bold green]").strip().upper()
     
+    if not ticker_input:
+        console.print("[red]Input cannot be empty.[/red]")
+        return
+
     # Initialize Tools
     market_tool = MarketDataTool()
 
@@ -51,10 +55,14 @@ def main():
     ticker = target_stocks[0]
 
     # Initialize Agents
-    tech_agent = TechnicalAgent()
-    fund_agent = FundamentalAgent()
-    sent_agent = SentimentAgent()
-    manager_agent = ManagerAgent()
+    try:
+        tech_agent = TechnicalAgent()
+        fund_agent = FundamentalAgent()
+        sent_agent = SentimentAgent()
+        manager_agent = ManagerAgent()
+    except Exception as e:
+        console.print(f"[red]Failed to initialize AI Agents: {e}[/red]")
+        return
 
     with Progress(
         SpinnerColumn(),
@@ -70,7 +78,7 @@ def main():
         progress.update(task1, completed=True)
 
         if not stock_data:
-            console.print(f"[red]Failed to fetch data for {ticker}. Check ticker symbol.[/red]")
+            console.print(f"[red]Failed to fetch sufficient data for {ticker}. Check ticker symbol or data availability.[/red]")
             return
 
         # Step 2: Agent Analysis
