@@ -12,6 +12,7 @@ class BaseAgent:
 
         # NEW client style (modern SDK)
         self.client = genai.Client(api_key=self.api_key)
+        self.model = None  # Not used in new client, but kept for compatibility if needed
         self.model_name = model_name
 
     def generate(self, prompt):
@@ -89,8 +90,34 @@ Ignore irrelevant generic market news.
         return self.generate(prompt)
 
 
+class HedgingAgent(BaseAgent):
+    def analyze(self, ticker, data, company_info):
+        prompt = f"""
+        You are a Risk Management and Hedging Expert for the Indian Stock Market.
+        Based on the following data for {ticker}, suggest a hedging strategy for a retail investor holding this stock.
+
+        --- Market Data ---
+        Current Price: {data.get('Current_Price')}
+        RSI: {data.get('RSI')}
+        Trend (SMA50): {data.get('Trend_50_SMA')}
+        
+        --- Fundamental Data ---
+        Beta: {company_info.get('beta')}
+        Sector: {company_info.get('sector')}
+        
+        Task:
+        1. Assess the downside risk based on Beta (volatility) and current technical trend.
+        2. Suggest specific hedging instruments available in India (e.g., Nifty/Stock Futures, Put Options, or inverse ETFs if applicable, but focus on simple strategies).
+        3. If the stock is not part of F&O (Futures & Options), suggest diversification or stop-loss levels.
+        4. Provide a "Risk Rating" (Low/Medium/High).
+        
+        Keep it concise and actionable.
+        """
+        return self.generate(prompt)
+
+
 class ManagerAgent(BaseAgent):
-    def synthesize(self, ticker, technical_analysis, fundamental_analysis, sentiment_analysis):
+    def synthesize(self, ticker, technical_analysis, fundamental_analysis, sentiment_analysis, hedging_strategy):
         prompt = f"""
 You are a Portfolio Manager for the Indian Stock Market.
 
@@ -105,11 +132,14 @@ Synthesize the following reports for {ticker}:
 --- Sentiment ---
 {sentiment_analysis}
 
+--- Hedging Strategy ---
+{hedging_strategy}
+
 Generate structured report:
 
 1. Executive Summary → Buy / Sell / Hold
 2. Key Drivers
-3. Risk Assessment
+3. Risk & Hedging Strategy
 4. Target Strategy (Short vs Long term)
 
 Keep it professional and concise.

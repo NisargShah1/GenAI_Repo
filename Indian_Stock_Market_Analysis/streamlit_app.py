@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from dotenv import load_dotenv
 
 from src.tools.market_data import MarketDataTool
-from src.agents.agents import TechnicalAgent, FundamentalAgent, SentimentAgent, ManagerAgent
+from src.agents.agents import TechnicalAgent, FundamentalAgent, SentimentAgent, ManagerAgent, HedgingAgent
 
 # Page Configuration
 st.set_page_config(
@@ -93,6 +93,7 @@ if st.button("🚀 Run Analysis", type="primary"):
         tech_agent = TechnicalAgent(api_key=api_key)
         fund_agent = FundamentalAgent(api_key=api_key)
         sent_agent = SentimentAgent(api_key=api_key)
+        hedge_agent = HedgingAgent(api_key=api_key)
         manager_agent = ManagerAgent(api_key=api_key)
 
         # 3. Agent Analysis
@@ -105,9 +106,12 @@ if st.button("🚀 Run Analysis", type="primary"):
         st.write("📰 Sentiment Agent is reading news...")
         sent_report = sent_agent.analyze(selected_ticker, news_data)
 
+        st.write("🛡️ Hedging Agent is calculating risk...")
+        hedge_report = hedge_agent.analyze(selected_ticker, stock_data, company_info)
+
         # 4. Final Synthesis
         st.write("👨‍💼 Portfolio Manager is synthesizing the recommendation...")
-        final_report = manager_agent.synthesize(selected_ticker, tech_report, fund_report, sent_report)
+        final_report = manager_agent.synthesize(selected_ticker, tech_report, fund_report, sent_report, hedge_report)
         
         status.update(label="Analysis Complete!", state="complete", expanded=False)
 
@@ -134,7 +138,7 @@ if st.button("🚀 Run Analysis", type="primary"):
     st.success(final_report)
 
     # Detailed Reports in Tabs
-    tab1, tab2, tab3 = st.tabs(["📈 Technical Analysis", "🏢 Fundamental Analysis", "📰 Sentiment Analysis"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📈 Technical", "🏢 Fundamental", "📰 Sentiment", "🛡️ Hedging"])
     
     with tab1:
         st.markdown(tech_report)
@@ -149,4 +153,9 @@ if st.button("🚀 Run Analysis", type="primary"):
         st.markdown("### Recent Headlines")
         for news in news_data:
             st.markdown(f"- [{news['title']}]({news['link']}) _({news['publisher']})_")
+
+    with tab4:
+        st.markdown(hedge_report)
+        st.caption(f"Beta: {company_info.get('beta', 'N/A')}")
+
 

@@ -7,7 +7,7 @@ from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from src.tools.market_data import MarketDataTool
-from src.agents.agents import TechnicalAgent, FundamentalAgent, SentimentAgent, ManagerAgent
+from src.agents.agents import TechnicalAgent, FundamentalAgent, SentimentAgent, ManagerAgent, HedgingAgent
 
 # Load environment variables
 load_dotenv()
@@ -59,6 +59,7 @@ def main():
         tech_agent = TechnicalAgent()
         fund_agent = FundamentalAgent()
         sent_agent = SentimentAgent()
+        hedge_agent = HedgingAgent()
         manager_agent = ManagerAgent()
     except Exception as e:
         console.print(f"[red]Failed to initialize AI Agents: {e}[/red]")
@@ -94,10 +95,14 @@ def main():
         sent_report = sent_agent.analyze(ticker, news_data)
         progress.update(task4, completed=True)
 
-        # Step 3: Synthesis
-        task5 = progress.add_task("[green]Synthesizing Final Report...[/green]", total=None)
-        final_report = manager_agent.synthesize(ticker, tech_report, fund_report, sent_report)
+        task5 = progress.add_task("[white]Running Hedging Analysis...[/white]", total=None)
+        hedge_report = hedge_agent.analyze(ticker, stock_data, company_info)
         progress.update(task5, completed=True)
+
+        # Step 3: Synthesis
+        task6 = progress.add_task("[green]Synthesizing Final Report...[/green]", total=None)
+        final_report = manager_agent.synthesize(ticker, tech_report, fund_report, sent_report, hedge_report)
+        progress.update(task6, completed=True)
 
     # Output Results
     console.print("\n")
@@ -109,6 +114,7 @@ def main():
     console.print(Panel(Markdown(tech_report), title="Technical Analysis", border_style="magenta"))
     console.print(Panel(Markdown(fund_report), title="Fundamental Analysis", border_style="blue"))
     console.print(Panel(Markdown(sent_report), title="Sentiment Analysis", border_style="yellow"))
+    console.print(Panel(Markdown(hedge_report), title="Hedging Strategy", border_style="white"))
 
 if __name__ == "__main__":
     main()
