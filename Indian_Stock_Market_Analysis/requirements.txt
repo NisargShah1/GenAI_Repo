@@ -6,3 +6,5 @@ rich
 textblob
 streamlit
 plotly
+beautifulsoup4
+requests

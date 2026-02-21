@@ -1,3 +1,5 @@
+import requests
+from bs4 import BeautifulSoup
 import yfinance as yf
 import pandas as pd
 from typing import List, Dict, Optional, Any
@@ -102,22 +104,56 @@ class MarketDataTool:
             return None
 
     def get_stock_news(self, ticker: str) -> List[Dict[str, Any]]:
-        """Fetches recent news for a specific stock."""
+        """Scrapes Google News for recent headlines about a specific stock."""
         try:
-            stock = yf.Ticker(ticker)
-            news = stock.news
-            simplified_news = []
-            if news:
-                for item in news[:5]: # Top 5 news items
-                    simplified_news.append({
-                        "title": item.get('title'),
-                        "publisher": item.get('publisher'),
-                        "link": item.get('link'),
-                        "relatedTickers": item.get('relatedTickers')
-                    })
-            return simplified_news
+            # Clean ticker (remove .NS suffix for better search results)
+            search_term = ticker.replace(".NS", "").replace(".BO", "") + " stock news India"
+            url = f"https://www.google.com/search?q={search_term}&tbm=nws&gl=IN&hl=en-IN"
+            
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            
+            response = requests.get(url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            news_results = []
+            
+            # Google News structure changes often, but usually articles are in div containers
+            # Common structure for search results (tbm=nws)
+            # Title is usually in h3 or similar heading tag within a div class=" SoaBEf" (may vary)
+            
+            # Attempt to find main news blocks
+            # This selector targets the main container for news items in Google Search News tab
+            articles = soup.select('div.SoaBEf') 
+            
+            if not articles:
+                 # Fallback for mobile view or different layout sometimes served
+                 articles = soup.select('div.Gx5Zad')
+
+            for article in articles[:5]: # Top 5
+                try:
+                    title_elem = article.select_one('div[role="heading"]') or article.select_one('.n0jPhd') or article.select_one('h3')
+                    link_elem = article.find('a')
+                    source_elem = article.select_one('.MgUUmf span') or article.select_one('.NUnG9d span') or article.select_one('.CEMjEf span')
+                    
+                    if title_elem and link_elem:
+                        news_results.append({
+                            "title": title_elem.get_text(),
+                            "link": link_elem['href'],
+                            "publisher": source_elem.get_text() if source_elem else "Google News",
+                            "relatedTickers": [] # Not easily available via scraping
+                        })
+                except Exception:
+                    continue
+            
+            if not news_results:
+                print(f"No news found via scraping for {ticker}, falling back to empty list.")
+                
+            return news_results
+
         except Exception as e:
-            print(f"Error fetching news for {ticker}: {e}")
+            print(f"Error scraping news for {ticker}: {e}")
             return []
 
     def get_company_info(self, ticker: str) -> Dict[str, Any]:
