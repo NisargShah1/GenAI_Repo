@@ -24,6 +24,25 @@ class MarketDataTool:
                 return SECTOR_MAPPING[key]
         return []
 
+    def validate_ticker(self, ticker: str) -> Optional[str]:
+        """Validates ticker and returns the correct yfinance symbol or None."""
+        candidates = [ticker, f"{ticker}.NS", f"{ticker}.BO"]
+        
+        # If user explicitly provided a suffix, prioritize that
+        if "." in ticker:
+            candidates = [ticker]
+            
+        for symbol in candidates:
+            try:
+                stock = yf.Ticker(symbol)
+                # Fast check: history for 1 day
+                hist = stock.history(period="1d")
+                if not hist.empty:
+                    return symbol
+            except Exception:
+                continue
+        return None
+
     def get_historical_data(self, ticker: str, period: str = "1y") -> Optional[pd.DataFrame]:
         """Fetches raw historical OHLCV data."""
         try:

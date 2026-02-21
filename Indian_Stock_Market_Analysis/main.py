@@ -47,10 +47,15 @@ def main():
         ticker_input = target_stocks[0] # Analyze the leader
         console.print(f"[bold]Analyzing Sector Leader: {ticker_input}[/bold]")
     else:
-        # Assume it's a ticker, append .NS if missing
-        if not ticker_input.endswith(".NS") and not ticker_input.endswith(".BO"):
-             ticker_input += ".NS"
-        target_stocks = [ticker_input]
+        # Validate Ticker
+        console.print(f"[cyan]Validating ticker {ticker_input}...[/cyan]")
+        valid_ticker = market_tool.validate_ticker(ticker_input)
+        if not valid_ticker:
+            console.print(f"[red]Invalid Ticker: {ticker_input}[/red]")
+            console.print("[dim]Try adding suffix like .NS (NSE) or .BO (BSE), or check the symbol.[/dim]")
+            return
+        console.print(f"[green]Ticker Validated: {valid_ticker}[/green]")
+        target_stocks = [valid_ticker]
 
     ticker = target_stocks[0]
 

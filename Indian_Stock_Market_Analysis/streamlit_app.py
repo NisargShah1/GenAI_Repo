@@ -56,9 +56,8 @@ selected_ticker = ""
 
 with col2:
     if analysis_mode == "Specific Ticker":
-        ticker_input = st.text_input("Enter NSE Ticker (e.g., RELIANCE, TCS):", value="RELIANCE").upper()
-        if ticker_input:
-            selected_ticker = ticker_input if ticker_input.endswith(".NS") else f"{ticker_input}.NS"
+        ticker_input = st.text_input("Enter Ticker (e.g., RELIANCE, TCS, AAPL):", value="RELIANCE").upper()
+        selected_ticker = ticker_input
     else:
         sector = st.selectbox("Select Sector:", ["BANKING", "IT", "AUTO", "PHARMA", "FMCG", "ENERGY", "METAL"])
         if sector:
@@ -67,13 +66,22 @@ with col2:
 
 if st.button("🚀 Run Analysis", type="primary"):
     if not selected_ticker:
-        st.error("Please select a valid ticker.")
+        st.error("Please enter a valid ticker.")
         st.stop()
 
-    with st.status("🤖 AI Agents are working...", expanded=True) as status:
+    with st.status("🔍 Validating Ticker...", expanded=True) as status:
+        valid_ticker = market_tool.validate_ticker(selected_ticker)
+        
+        if not valid_ticker:
+            status.update(label="Validation Failed", state="error")
+            st.error(f"❌ Could not find data for '{selected_ticker}'. Please check the symbol or try adding .NS / .BO suffix.")
+            st.stop()
+            
+        selected_ticker = valid_ticker
+        st.success(f"Ticker Validated: {selected_ticker}")
         
         # 1. Fetch Data
-        st.write("📡 Fetching market data...")
+        st.write(f"📡 Fetching market data for {selected_ticker}...")
         try:
             stock_data = market_tool.get_stock_price_data(selected_ticker, period="1y")
             company_info = market_tool.get_company_info(selected_ticker)
