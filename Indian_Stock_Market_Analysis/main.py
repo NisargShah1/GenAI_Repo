@@ -96,7 +96,9 @@ def main():
         progress.update(task4, completed=True)
 
         task5 = progress.add_task("[white]Running Hedging Analysis...[/white]", total=None)
-        hedge_report = hedge_agent.analyze(ticker, stock_data, company_info)
+        # Combine data for hedging
+        combined_data = {**stock_data, 'beta': company_info.get('beta', 'N/A')}
+        hedge_report = hedge_agent.analyze(ticker, tech_report, fund_report, sent_report, combined_data)
         progress.update(task5, completed=True)
 
         # Step 3: Synthesis

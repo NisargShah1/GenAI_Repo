@@ -106,8 +106,10 @@ if st.button("🚀 Run Analysis", type="primary"):
         st.write("📰 Sentiment Agent is reading news...")
         sent_report = sent_agent.analyze(selected_ticker, news_data)
 
-        st.write("🛡️ Hedging Agent is calculating risk...")
-        hedge_report = hedge_agent.analyze(selected_ticker, stock_data, company_info)
+        st.write("🛡️ Hedging Agent is synthesizing inputs...")
+        # Combine market data for hedging context
+        combined_data = {**stock_data, 'beta': company_info.get('beta', 'N/A')}
+        hedge_report = hedge_agent.analyze(selected_ticker, tech_report, fund_report, sent_report, combined_data)
 
         # 4. Final Synthesis
         st.write("👨‍💼 Portfolio Manager is synthesizing the recommendation...")

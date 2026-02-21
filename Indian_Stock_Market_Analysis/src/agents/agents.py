@@ -91,27 +91,34 @@ Ignore irrelevant generic market news.
 
 
 class HedgingAgent(BaseAgent):
-    def analyze(self, ticker, data, company_info):
+    def analyze(self, ticker, technical_view, fundamental_view, sentiment_view, market_data):
         prompt = f"""
         You are a Risk Management and Hedging Expert for the Indian Stock Market.
-        Based on the following data for {ticker}, suggest a hedging strategy for a retail investor holding this stock.
+        Based on the detailed analysis provided by other agents for {ticker}, suggest a robust hedging strategy.
 
-        --- Market Data ---
-        Current Price: {data.get('Current_Price')}
-        RSI: {data.get('RSI')}
-        Trend (SMA50): {data.get('Trend_50_SMA')}
-        
-        --- Fundamental Data ---
-        Beta: {company_info.get('beta')}
-        Sector: {company_info.get('sector')}
-        
+        --- Technical Outlook ---
+        {technical_view}
+
+        --- Fundamental Outlook ---
+        {fundamental_view}
+
+        --- Sentiment Outlook ---
+        {sentiment_view}
+
+        --- Key Metrics ---
+        Current Price: {market_data.get('Current_Price')}
+        Beta: {market_data.get('beta', 'N/A')}
+
         Task:
-        1. Assess the downside risk based on Beta (volatility) and current technical trend.
-        2. Suggest specific hedging instruments available in India (e.g., Nifty/Stock Futures, Put Options, or inverse ETFs if applicable, but focus on simple strategies).
-        3. If the stock is not part of F&O (Futures & Options), suggest diversification or stop-loss levels.
-        4. Provide a "Risk Rating" (Low/Medium/High).
+        1. **Synthesize Risk**: Combine the technical trend (e.g., bearish reversal), fundamental stability (e.g., high valuation), and sentiment (e.g., negative news) to assess the *real* downside risk.
+        2. **Suggest Hedging Strategy**: 
+           - If the outlook is **Bullish but Volatile**: Suggest buying cheap OTM Puts or a trailing stop-loss.
+           - If **Bearish**: Suggest selling Call Options (Covered Call) or buying Puts / Inverse ETFs.
+           - If **Neutral/Stagnant**: Suggest Iron Condors or simply holding cash.
+           - Consider instrument availability in India (Nifty Futures, Stock Options, Liquid Bees).
+        3. **Allocation**: How much of the position should be hedged? (e.g., "Hedge 50% of exposure").
         
-        Keep it concise and actionable.
+        Provide a "Risk Rating" (Low/Medium/High) and a concrete "Action Plan".
         """
         return self.generate(prompt)
 
