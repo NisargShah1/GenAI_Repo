@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class BaseAgent:
-    def __init__(self, model_name="gemini-pro"):
-        self.api_key = os.getenv("GOOGLE_API_KEY")
+    def __init__(self, api_key=None, model_name="gemini-pro"):
+        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY not found in environment variables.")
+            raise ValueError("GOOGLE_API_KEY not found in environment variables or passed as argument.")
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(model_name)
 

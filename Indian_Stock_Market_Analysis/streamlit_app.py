@@ -42,8 +42,6 @@ if not api_key:
     st.sidebar.warning("Please enter your Google Gemini API Key to proceed.")
     st.stop()
 
-os.environ["GOOGLE_API_KEY"] = api_key
-
 # --- Main App ---
 st.title("🇮🇳 Indian Stock Market AI Analyst")
 st.markdown("### Multi-Agent Analysis System powered by Gemini")
@@ -93,10 +91,10 @@ if st.button("🚀 Run Analysis", type="primary"):
             st.stop()
 
         # 2. Initialize Agents
-        tech_agent = TechnicalAgent()
-        fund_agent = FundamentalAgent()
-        sent_agent = SentimentAgent()
-        manager_agent = ManagerAgent()
+        tech_agent = TechnicalAgent(api_key=api_key)
+        fund_agent = FundamentalAgent(api_key=api_key)
+        sent_agent = SentimentAgent(api_key=api_key)
+        manager_agent = ManagerAgent(api_key=api_key)
 
         # 3. Agent Analysis
         st.write("📈 Technical Agent is analyzing price action...")
