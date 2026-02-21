@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class BaseAgent:
-    def __init__(self, api_key=None, model_name="gemini-pro"):
+    def __init__(self, api_key=None, model_name="gemini-1.5-flash"):
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not self.api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables or passed as argument.")
