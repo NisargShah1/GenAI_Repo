@@ -1,0 +1,12 @@
+langchain
+langchain-community
+langchain-google-genai
+chromadb
+streamlit
+google-generativeai
+sentence-transformers
+pypdf
+faiss-cpu
+python-dotenv
+pymupdf
+rank_bm25
