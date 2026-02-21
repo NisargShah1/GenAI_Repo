@@ -1,6 +1,5 @@
 import yfinance as yf
 import pandas as pd
-import pandas_ta as ta
 from typing import List, Dict, Optional, Any
 
 # Static mapping of sectors to top Indian stocks (NSE) for demo purposes
@@ -23,6 +22,39 @@ class MarketDataTool:
                 return SECTOR_MAPPING[key]
         return []
 
+    def get_historical_data(self, ticker: str, period: str = "1y") -> Optional[pd.DataFrame]:
+        """Fetches raw historical OHLCV data."""
+        try:
+            stock = yf.Ticker(ticker)
+            df = stock.history(period=period)
+            if df.empty:
+                return None
+            return df
+        except Exception as e:
+            print(f"Error fetching history for {ticker}: {e}")
+            return None
+
+    def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculates SMA, RSI, and MACD manually using pandas."""
+        # SMA
+        df['SMA_50'] = df['Close'].rolling(window=50).mean()
+        df['SMA_200'] = df['Close'].rolling(window=200).mean()
+
+        # RSI
+        delta = df['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['RSI'] = 100 - (100 / (1 + rs))
+
+        # MACD
+        k = df['Close'].ewm(span=12, adjust=False, min_periods=12).mean()
+        d = df['Close'].ewm(span=26, adjust=False, min_periods=26).mean()
+        df['MACD'] = k - d
+        df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False, min_periods=9).mean()
+        
+        return df
+
     def get_stock_price_data(self, ticker: str, period: str = "1y") -> Optional[Dict[str, Any]]:
         """Fetches historical price data and calculates technical indicators."""
         try:
@@ -34,27 +66,20 @@ class MarketDataTool:
                 return None
 
             # Calculate Indicators
-            # Ensure we have enough data for 200 SMA
             if len(df) < 200:
                 print(f"Insufficient data for {ticker} (need >200 days for SMA200)")
-                return None
-
-            # Simple Moving Averages
-            df['SMA_50'] = ta.sma(df['Close'], length=50)
-            df['SMA_200'] = ta.sma(df['Close'], length=200)
+                # Continue but some indicators will be NaN
             
-            # RSI (Relative Strength Index)
-            df['RSI'] = ta.rsi(df['Close'], length=14)
-            
-            # MACD
-            macd = ta.macd(df['Close'])
-            if macd is not None:
-                df = pd.concat([df, macd], axis=1)
+            df = self.calculate_indicators(df)
 
             # Get the latest data point
             latest = df.iloc[-1].to_dict()
             latest['Current_Price'] = latest['Close']
             latest['Date'] = df.index[-1].strftime('%Y-%m-%d')
+            
+            # Map manual MACD names to expected keys if needed or keep new ones
+            latest['MACD_12_26_9'] = latest.get('MACD')
+            latest['MACDs_12_26_9'] = latest.get('MACD_Signal')
             
             # Handle potential NaNs in calculations
             sma50 = latest.get('SMA_50')
