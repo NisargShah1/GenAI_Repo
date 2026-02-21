@@ -98,3 +98,73 @@ class ManagerAgent(BaseAgent):
         Keep it professional, concise, and actionable for an Indian retail investor.
         """
         return self.generate(prompt)
+
+class CodeFixerAgent(BaseAgent):
+    def fix_code(self, code_snippet, review_feedback):
+        prompt = f"""
+        You are a Senior Python Developer tasked with fixing code based on a code review.
+        
+        --- Original Code ---
+        {code_snippet}
+        
+        --- Review Feedback ---
+        {review_feedback}
+        
+        Task:
+        1. Refactor the code to address all issues in the feedback.
+        2. Ensure adherence to PEP 8 standards.
+        3. Add type hints and docstrings if missing.
+        4. Provide the COMPLETE corrected code block.
+        5. Also generate a simple unit test using `unittest` or `pytest` to verify the fix.
+        
+        Output Format:
+        [FIXED_CODE]
+        ... code here ...
+        [/FIXED_CODE]
+        
+        [TESTS]
+        ... test code here ...
+        [/TESTS]
+        """
+        return self.generate(prompt)
+
+class LeadAIEngineerAgent(BaseAgent):
+    def __init__(self):
+        super().__init__()
+        self.fixer = CodeFixerAgent()
+
+    def review_and_instruct(self, file_path, code_content):
+        # Step 1: Review
+        review_prompt = f"""
+        You are a Lead AI Engineer reviewing Python code for a mission-critical financial application.
+        Review the following code from `{file_path}`:
+
+        {code_content}
+
+        Criteria:
+        1. **Code Quality**: PEP 8 compliance, variable naming, readability.
+        2. **Security**: No hardcoded secrets, safe API usage.
+        3. **Robustness**: Error handling (try-except blocks), edge case coverage.
+        4. **Performance**: Efficient data structures and algorithms.
+        5. **Documentation**: Presence of docstrings and type hints.
+
+        If the code is perfect, respond with "APPROVED".
+        If issues are found, list them clearly as bullet points under "ISSUES FOUND".
+        """
+        review_result = self.generate(review_prompt)
+
+        if "APPROVED" in review_result:
+            return {
+                "status": "APPROVED",
+                "review": review_result,
+                "fixed_code": None,
+                "tests": None
+            }
+        else:
+            # Step 2: Instruct Fixer Agent
+            fix_result = self.fixer.fix_code(code_content, review_result)
+            return {
+                "status": "NEEDS_FIX",
+                "review": review_result,
+                "fix_response": fix_result
+            }
