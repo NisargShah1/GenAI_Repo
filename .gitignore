@@ -1,2 +1,7 @@
 /.idea
-/target
+/target-e 
+Doc_RAG_System/venv/
+Doc_RAG_System/__pycache__/
+Doc_RAG_System/data/
+Doc_RAG_System/faiss_db/
+Doc_RAG_System/.env

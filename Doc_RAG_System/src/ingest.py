@@ -1,15 +1,15 @@
 import os
 import glob
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import shutil
 
 # Configuration
 DATA_PATH = "data"
-DB_PATH = "chroma_db"
+DB_PATH = "faiss_db"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
@@ -57,19 +57,15 @@ def get_embedding_function(model_type="huggingface"):
         return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def create_vector_db(chunks, embedding_function):
-    """Creates (or updates) the Chroma vector store."""
+    """Creates (or updates) the FAISS vector store."""
     
     # Optional: Clear existing DB to start fresh (uncomment if needed)
     # if os.path.exists(DB_PATH):
     #     shutil.rmtree(DB_PATH)
 
-    print("Creating Vector Database...")
-    db = Chroma.from_documents(
-        documents=chunks, 
-        embedding=embedding_function, 
-        persist_directory=DB_PATH
-    )
-    db.persist()
+    print("Creating Vector Database (FAISS)...")
+    db = FAISS.from_documents(chunks, embedding_function)
+    db.save_local(DB_PATH)
     print(f"Vector Database saved to {DB_PATH}")
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import os
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
@@ -7,7 +7,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 # Configuration
-DB_PATH = "chroma_db"
+DB_PATH = "faiss_db"
 
 class RAGEngine:
     def __init__(self, embedding_model="huggingface", llm_model="gemini-pro"):
@@ -22,7 +22,7 @@ class RAGEngine:
             
         # 2. Load Vector DB
         if os.path.exists(DB_PATH):
-            self.vector_db = Chroma(persist_directory=DB_PATH, embedding_function=self.embedding_fn)
+            self.vector_db = FAISS.load_local(DB_PATH, self.embedding_fn, allow_dangerous_deserialization=True)
             self.retriever = self.vector_db.as_retriever(search_kwargs={"k": 5}) # Fetch top 5
         else:
             raise FileNotFoundError(f"Vector DB not found at {DB_PATH}. Run ingest.py first.")
