@@ -15,6 +15,7 @@ This repository contains a collection of Generative AI projects exploring Agents
 | **[DocLoader (OCR)](docloader/)** | OCR utility for extracting text from printed (Tesseract) and handwritten (TrOCR) documents. | Python, Tesseract, TrOCR, Transformers |
 | **[MCP Server (Python)](mcp_server/)** | Lightweight Python FastAPI server exposing basic MCP tools (e.g., Calculator). | Python, FastAPI, MCP |
 | **[MCP Server with AI Agent](mcp_server_with_AI_Agent/)** | Python FastAPI server integrated with LangGraph for agentic workflows (e.g., Jokes, Calculator). | Python, FastAPI, LangGraph |
+| **[Doc_RAG_System](Doc_RAG_System/)** | RAG system for querying scientific papers (PDFs) with hybrid retrieval and reranking. | Python, Streamlit, LangChain, FAISS, Gemini Pro |
 
 ## 🚀 Getting Started
 
