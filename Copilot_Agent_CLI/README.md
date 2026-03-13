@@ -77,6 +77,20 @@ A meta-agent capable of decomposing massive tasks into smaller chunks. It dynami
 
 ---
 
+
+### 4. The Local System & Browser Operator (`system-operator`)
+An autonomous agent capable of operating your local computer, interacting with the desktop file system (like Excel/Word), and controlling the browser (Chrome) using tools like Playwright or Puppeteer. It has built-in safety guardrails to prevent destructive commands.
+
+**Scenario:** You want to automate opening a browser, searching for information on Wikipedia, extracting the text, and taking a screenshot of the page.
+**Steps:**
+1. Run the system-operator persona using Vertex AI:
+   ```bash
+   node cli/index.js -p vertex persona system-operator "Open Chrome, navigate to wikipedia.org, search for AI Agents, extract the summary, and take a screenshot."
+   ```
+2. The agent interprets the request, forms an execution plan, and calls the appropriate system tools (`browserOpen`, `runCommand`, `takeScreenshot`).
+3. It performs safety checks before running any OS-level shell commands to prevent destructive actions (e.g., `rm -rf`).
+4. Once completed, it reports back the extracted data and the location of the screenshot.
+
 ## 🔧 How to use with GitHub Copilot
 
 ### 1. Copilot Chat Persona Prompting (Workspace Context)
