@@ -20,6 +20,7 @@ program
 const REQUIRED_SECRETS = ['GITHUB_TOKEN', 'GOOGLE_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID'];
 const EMAIL_SECRETS = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'];
 const VERTEX_SECRETS = ['GCP_PROJECT_ID']; // Expects standard gcloud ADC to be present
+const LINKEDIN_SECRETS = ['LINKEDIN_ACCESS_TOKEN'];
 
 program
   .command('implement')
@@ -69,6 +70,8 @@ program
     let secretsToEnsure = [];
     if (name === 'email-assistant') {
       secretsToEnsure = [...EMAIL_SECRETS];
+    } else if (name === 'linkedin-agent') {
+      secretsToEnsure = [...LINKEDIN_SECRETS];
     } else {
       secretsToEnsure = [...REQUIRED_SECRETS];
     }

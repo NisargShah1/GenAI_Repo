@@ -91,6 +91,21 @@ An autonomous agent capable of operating your local computer, interacting with t
 3. It performs safety checks before running any OS-level shell commands to prevent destructive actions (e.g., `rm -rf`).
 4. Once completed, it reports back the extracted data and the location of the screenshot.
 
+
+### 5. The LinkedIn Brand Manager (`linkedin-agent`)
+An autonomous agent specialized in drafting professional LinkedIn posts based on user topics, engaging in an iterative feedback loop with the human, and publishing the final post via the LinkedIn API.
+
+**Scenario:** You want to write a post about the latest release of a software tool, but you want to review and tweak the text before it goes live to your network.
+**Steps:**
+1. Run the linkedin-agent persona using Vertex AI:
+   ```bash
+   node cli/index.js -p vertex persona linkedin-agent "Draft a LinkedIn post about our new Copilot Agent CLI tool. It helps automate GitHub and local system workflows."
+   ```
+2. The CLI will securely prompt you for your `LINKEDIN_ACCESS_TOKEN` if not already set.
+3. The agent will output a drafted post and explicitly ask you for feedback or approval.
+4. If you ask it to reframe (e.g., "Make it punchier" or "Add more emojis"), it will revise the text.
+5. Once you reply with "APPROVED", the agent will natively call the `publishLinkedInPost` tool to push it live to your LinkedIn feed.
+
 ## 🔧 How to use with GitHub Copilot
 
 ### 1. Copilot Chat Persona Prompting (Workspace Context)
