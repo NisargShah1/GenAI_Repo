@@ -1,0 +1,20 @@
+{
+  "name": "copilot-agent-cli",
+  "version": "1.0.0",
+  "description": "Autonomous GitHub Agent CLI for Copilot Integration",
+  "main": "cli/index.js",
+  "type": "module",
+  "bin": {
+    "gh-agent": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node cli/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "inquirer": "^9.2.12"
+  }
+}
