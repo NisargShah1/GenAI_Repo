@@ -1,5 +1,5 @@
 import fs from 'fs';
-import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Read data from an Excel spreadsheet.
@@ -14,15 +14,33 @@ export async function readSheet(filePath, sheetName) {
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const workbook = xlsx.readFile(filePath);
-  const targetSheet = sheetName ? workbook.SheetNames.find(n => n === sheetName) : workbook.SheetNames[0];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
 
-  if (!targetSheet) {
+  const sheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
+  if (!sheet) {
     throw new Error(`Sheet "${sheetName}" not found in ${filePath}`);
   }
 
-  const sheet = workbook.Sheets[targetSheet];
-  const data = xlsx.utils.sheet_to_json(sheet);
+  const data = [];
+  const keys = [];
+
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) {
+      // Assuming first row contains headers
+      row.eachCell((cell, colNumber) => {
+        keys[colNumber] = cell.value;
+      });
+    } else {
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        if (keys[colNumber]) {
+          rowData[keys[colNumber]] = cell.value;
+        }
+      });
+      data.push(rowData);
+    }
+  });
   
   return data;
 }
@@ -31,40 +49,29 @@ export async function readSheet(filePath, sheetName) {
  * Write or update a specific cell in an Excel spreadsheet.
  * @param {string} filePath - Path to the .xlsx file.
  * @param {string} sheetName - The name of the sheet.
- * @param {string} cell - The cell address (e.g., 'A1', 'B2').
+ * @param {string} cellAddress - The cell address (e.g., 'A1', 'B2').
  * @param {string|number} value - The value to write to the cell.
  */
-export async function writeCell(filePath, sheetName, cell, value) {
-  console.log(`📝 [Excel] Writing value "${value}" to cell ${cell} in sheet "${sheetName}" of ${filePath}`);
+export async function writeCell(filePath, sheetName, cellAddress, value) {
+  console.log(`📝 [Excel] Writing value "${value}" to cell ${cellAddress} in sheet "${sheetName}" of ${filePath}`);
   
-  let workbook;
+  const workbook = new ExcelJS.Workbook();
+  
   if (fs.existsSync(filePath)) {
-    workbook = xlsx.readFile(filePath);
-  } else {
-    // If the file doesn't exist, create a new workbook
-    workbook = xlsx.utils.book_new();
+    await workbook.xlsx.readFile(filePath);
   }
 
-  let sheet = workbook.Sheets[sheetName];
+  let sheet = workbook.getWorksheet(sheetName);
   if (!sheet) {
     // If the sheet doesn't exist, create an empty one
-    sheet = {};
-    xlsx.utils.book_append_sheet(workbook, sheet, sheetName);
+    sheet = workbook.addWorksheet(sheetName);
   }
 
   // Update the specific cell
-  sheet[cell] = { v: value };
+  const cell = sheet.getCell(cellAddress);
+  cell.value = value;
 
-  // Update the sheet range if the new cell falls outside the current range
-  const range = sheet['!ref'] ? xlsx.utils.decode_range(sheet['!ref']) : { s: { c: 0, r: 0 }, e: { c: 0, r: 0 } };
-  const cellAddress = xlsx.utils.decode_cell(cell);
+  await workbook.xlsx.writeFile(filePath);
   
-  if (cellAddress.c > range.e.c) range.e.c = cellAddress.c;
-  if (cellAddress.r > range.e.r) range.e.r = cellAddress.r;
-  
-  sheet['!ref'] = xlsx.utils.encode_range(range);
-
-  xlsx.writeFile(workbook, filePath);
-  
-  return `Successfully wrote "${value}" to ${cell} in ${filePath}`;
+  return `Successfully wrote "${value}" to ${cellAddress} in ${filePath}`;
 }
