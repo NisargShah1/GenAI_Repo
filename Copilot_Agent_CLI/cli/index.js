@@ -17,6 +17,7 @@ program
 
 // List of required tools/keys based on the persona
 const REQUIRED_SECRETS = ['GITHUB_TOKEN', 'GOOGLE_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID'];
+const EMAIL_SECRETS = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'];
 
 program
   .command('implement')
@@ -49,8 +50,12 @@ program
   .argument('<name>', 'Name of the persona file (without .md)')
   .argument('<task>', 'The task to execute')
   .action(async (name, task) => {
-    // 1. Ensure secrets exist locally before doing anything else
-    await ensureSecrets(REQUIRED_SECRETS);
+    // Ensure appropriate secrets depending on the persona
+    if (name === 'email-assistant') {
+      await ensureSecrets(EMAIL_SECRETS);
+    } else {
+      await ensureSecrets(REQUIRED_SECRETS);
+    }
 
     console.log(`\n🎭 Executing persona: "${name}" for task: "${task}"\n`);
     const personaPath = path.join(__dirname, `../personas/${name}.md`);
