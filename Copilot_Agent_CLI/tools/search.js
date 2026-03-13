@@ -3,19 +3,20 @@
  * This tool allows the Copilot Agent to search the internet for documentation, 
  * solutions, or external context required during the development loop.
  * 
- * Requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID (CX) environment variables.
+ * Keys are dynamically loaded from ~/.copilot-agent-secrets.json or process.env
  */
 export async function googleSearch(query, numResults = 5) {
+  // `ensureSecrets` from config.js already injects these into process.env 
   const apiKey = process.env.GOOGLE_API_KEY;
   const cx = process.env.GOOGLE_SEARCH_ENGINE_ID;
   
   if (!apiKey || !cx) {
-    console.warn("⚠️ Warning: GOOGLE_API_KEY or GOOGLE_SEARCH_ENGINE_ID is missing. Running in mock mode.");
+    console.warn("⚠️ Warning: GOOGLE_API_KEY or GOOGLE_SEARCH_ENGINE_ID is missing from local secrets. Running in mock mode.");
     return [
       {
         title: `Mock Result for: ${query}`,
         link: "https://example.com",
-        snippet: "This is a mock search result because API keys were not provided. Set GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID in your environment."
+        snippet: "This is a mock search result because API keys were not provided in ~/.copilot-agent-secrets.json."
       }
     ];
   }

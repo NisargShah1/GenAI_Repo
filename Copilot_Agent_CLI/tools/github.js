@@ -1,9 +1,11 @@
 import { Octokit } from "@octokit/rest";
 
-// Ensure you load environment variables (e.g., using dotenv) before calling these.
-// require('dotenv').config();
-
+/**
+ * Instantiate Octokit with locally cached secrets (via ensureSecrets)
+ */
 const getOctokit = () => {
+  // `ensureSecrets` loads the token from ~/.copilot-agent-secrets.json
+  // and injects it into process.env before this is called.
   return new Octokit({
     auth: process.env.GITHUB_TOKEN
   });
