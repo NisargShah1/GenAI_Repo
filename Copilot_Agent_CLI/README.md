@@ -10,6 +10,46 @@ This module implements an Autonomous Agent CLI integrated with GitHub Copilot co
 
 ---
 
+
+### Full Architecture Diagram (Agentic Harness)
+
+```mermaid
+graph TD
+    User((User / Developer)) -->|CLI Command / IDE Chat| CLI[Agent CLI Entrypoint]
+    
+    CLI -->|1. Ensure Secrets| SecretMgr[(Local Secrets Vault<br/>~/.copilot-agent-secrets.json)]
+    CLI -->|2. Load Persona| Personas[Persona Definitions<br/>.md files]
+    
+    CLI -->|3. Route Request| Provider{LLM Provider}
+    Provider -->|MCP / Extensions| Copilot[GitHub Copilot]
+    Provider -->|-p vertex| Vertex[Vertex AI Gemini]
+    
+    Copilot --> AgentHarness[Agentic Harness & Execution Loop]
+    Vertex --> AgentHarness
+    
+    AgentHarness -->|Spawns| Orchestrator[Meta-Orchestrator<br/>Sub-agent Spawning]
+    Orchestrator --> AgentHarness
+    
+    subgraph Safety & Tool Execution Layer
+        AgentHarness --> Tools[Tool Routing]
+        
+        Tools -->|read/write/pr| GitHub[GitHub API]
+        Tools -->|search context| GoogleSearch[Google Search API]
+        Tools -->|fetch/draft/label| Gmail[Gmail API]
+        Tools -->|draft/publish| LinkedIn[LinkedIn API]
+        Tools -->|exec/screenshot| System[Local OS & Browser]
+        Tools -->|read/write cell| Excel[ExcelJS]
+    end
+    
+    %% Styling
+    classDef secure fill:#f9d0c4,stroke:#333,stroke-width:2px;
+    class SecretMgr secure;
+    classDef external fill:#d4e6f1,stroke:#2874a6,stroke-width:2px;
+    class GitHub,GoogleSearch,Gmail,LinkedIn external;
+    classDef local fill:#d5f5e3,stroke:#239b56,stroke-width:2px;
+    class System,Excel local;
+```
+
 ## 🚀 Setup & Initialization
 
 ### 1. Install Dependencies
