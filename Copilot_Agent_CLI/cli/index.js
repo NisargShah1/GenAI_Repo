@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ensureSecrets } from '../tools/config.js';
 import { callGeminiVertex } from '../tools/gemini.js';
+import { callOllama } from '../tools/ollama.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,9 +14,10 @@ const program = new Command();
 
 program
   .name('gh-agent')
-  .description('Autonomous GitHub Agent CLI (with Gemini Vertex AI support)')
+  .description('Autonomous GitHub Agent CLI (with Gemini Vertex AI and local Ollama support)')
   .version('1.0.0')
-  .option('-p, --provider <type>', 'LLM Provider (copilot, vertex)', 'copilot');
+  .option('-p, --provider <type>', 'LLM Provider (copilot, vertex, ollama)', 'copilot')
+  .option('-m, --model <name>', 'Model name for local Ollama execution (e.g., phi3, llama3)', 'phi3');
 
 const REQUIRED_SECRETS = ['GITHUB_TOKEN', 'GOOGLE_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID'];
 const EMAIL_SECRETS = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'];
@@ -32,9 +34,11 @@ program
     // 1. Ensure secrets exist locally depending on the selected provider
     if (opts.provider === 'vertex') {
       await ensureSecrets([...REQUIRED_SECRETS, ...VERTEX_SECRETS]);
-    } else {
+    } else if (opts.provider === 'copilot') {
       await ensureSecrets(REQUIRED_SECRETS);
     }
+    // Note: ollama running locally usually doesn't require cloud API keys just to init the chat, 
+    // but tools might need them. Keeping it simple for now, we only enforce on vertex/copilot.
 
     console.log(`\n🚀 Starting implementation for requirement: "${requirement}"\nProvider: ${opts.provider}\n`);
     const personaPath = path.join(__dirname, '../personas/dev-agent.md');
@@ -46,9 +50,12 @@ program
       process.exit(1);
     }
 
+    const personaContent = fs.readFileSync(personaPath, 'utf8');
+
     if (opts.provider === 'vertex') {
-      const personaContent = fs.readFileSync(personaPath, 'utf8');
       await callGeminiVertex(personaContent, requirement);
+    } else if (opts.provider === 'ollama') {
+      await callOllama(personaContent, requirement, opts.model);
     } else {
       console.log("Step 1: Requirement Understanding...");
       console.log("Step 2: Repository Analysis...");
@@ -66,7 +73,7 @@ program
   .action(async (name, task) => {
     const opts = program.opts();
     
-    // Aggregate required secrets
+    // Aggregate required secrets based on persona and provider
     let secretsToEnsure = [];
     if (name === 'email-assistant') {
       secretsToEnsure = [...EMAIL_SECRETS];
@@ -80,7 +87,10 @@ program
       secretsToEnsure.push(...VERTEX_SECRETS);
     }
 
-    await ensureSecrets(secretsToEnsure);
+    if (opts.provider !== 'ollama') {
+        // Only rigidly block on secrets if we are not running a local test.
+        await ensureSecrets(secretsToEnsure);
+    }
 
     console.log(`\n🎭 Executing persona: "${name}" for task: "${task}"\nProvider: ${opts.provider}\n`);
     const personaPath = path.join(__dirname, `../personas/${name}.md`);
@@ -92,9 +102,12 @@ program
       process.exit(1);
     }
 
+    const personaContent = fs.readFileSync(personaPath, 'utf8');
+
     if (opts.provider === 'vertex') {
-      const personaContent = fs.readFileSync(personaPath, 'utf8');
       await callGeminiVertex(personaContent, task);
+    } else if (opts.provider === 'ollama') {
+      await callOllama(personaContent, task, opts.model);
     } else {
       console.log("✅ Execution loop initialized. (Copilot logic handled via extensions/MCP)");
     }

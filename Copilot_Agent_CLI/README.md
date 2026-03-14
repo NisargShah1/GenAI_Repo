@@ -23,9 +23,11 @@ graph TD
     CLI -->|3. Route Request| Provider{LLM Provider}
     Provider -->|MCP / Extensions| Copilot[GitHub Copilot]
     Provider -->|-p vertex| Vertex[Vertex AI Gemini]
+    Provider -->|-p ollama| Ollama[Local Ollama<br/>e.g., phi3]
     
     Copilot --> AgentHarness[Agentic Harness & Execution Loop]
     Vertex --> AgentHarness
+    Ollama --> AgentHarness
     
     AgentHarness -->|Spawns| Orchestrator[Meta-Orchestrator<br/>Sub-agent Spawning]
     Orchestrator --> AgentHarness
@@ -69,9 +71,16 @@ When you run a command for the first time, the CLI will securely prompt you for 
 
 ## 🤖 Supported Providers
 
-The CLI supports both **GitHub Copilot** (via MCP/Extensions) and natively executing tasks using **Google Cloud Vertex AI (Gemini 1.5 Pro)**. 
+The CLI supports **GitHub Copilot** (via MCP/Extensions), natively executing tasks using **Google Cloud Vertex AI (Gemini 1.5 Pro)**, and running fully locally with **Ollama** (e.g., `phi3`, `llama3`). 
 
 To run an agent using Gemini Vertex AI, simply append the `-p vertex` or `--provider vertex` flag to your command. The CLI will load the persona as a system instruction and execute the task!
+
+To run an agent using local Ollama, append `-p ollama` and optionally `-m <model_name>` (defaults to `phi3`). Ensure you have Ollama installed and the model pulled:
+```bash
+ollama run phi3
+node cli/index.js -p ollama -m phi3 persona dev-agent "Add a feature to tools/search.js"
+```
+
 
 ---
 
