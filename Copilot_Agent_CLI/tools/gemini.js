@@ -1,4 +1,5 @@
 import { VertexAI } from '@google-cloud/vertexai';
+import { ensureAuthenticated } from './auth.js';
 
 /**
  * Call Gemini on Google Cloud Vertex AI using the provided persona (system instruction) and prompt.
@@ -7,6 +8,8 @@ import { VertexAI } from '@google-cloud/vertexai';
  * and that GCP_PROJECT_ID is provided via ~/.copilot-agent-secrets.json or process.env.
  */
 export async function callGeminiVertex(personaContent, userTask) {
+  await ensureAuthenticated();
+
   const project = process.env.GCP_PROJECT_ID;
   const location = process.env.GCP_LOCATION || 'us-central1';
 
@@ -55,6 +58,10 @@ export async function callGeminiVertex(personaContent, userTask) {
     return fullResponse;
   } catch (error) {
     console.error('\n❌ Vertex AI Execution Error:', error.message);
+    if (error.message.includes('Unable to authenticate your request') || error.message.includes('Could not load the default credentials')) {
+        import('./auth.js').then(auth => auth.clearCredentials());
+        console.log('\nPlease run the command again to provide a new service account key.');
+    }
     throw error;
   }
 }
