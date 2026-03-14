@@ -103,7 +103,7 @@ export async function callGeminiVertex(personaContent, userTask) {
   
   // Instantiate the model
   const generativeModel = vertexAi.preview.getGenerativeModel({
-    model: 'gemini-1.5-pro', // Fallback to stable version
+    model: 'gemini-2.5-pro', // Fallback to stable version
     systemInstruction: {
       role: 'system',
       parts: [{ text: personaContent }]
