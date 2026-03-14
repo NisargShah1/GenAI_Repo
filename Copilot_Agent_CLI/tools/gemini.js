@@ -1,6 +1,7 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { ensureAuthenticated } from './auth.js';
 import * as systemTools from './system.js';
+import * as gmailTools from './gmail.js';
 
 // Define the function declarations for Vertex AI
 const systemToolDeclarations = [
@@ -81,6 +82,61 @@ const systemToolDeclarations = [
       },
       required: ["appName"]
     }
+  },
+  {
+    name: "fetchUnreadEmails",
+    description: "Fetch recent unread emails from Gmail",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        maxResults: { type: "INTEGER", description: "Maximum number of unread emails to retrieve (default: 5)" }
+      }
+    }
+  },
+  {
+    name: "listLabels",
+    description: "List available Gmail labels (to get label IDs for applying/removing)",
+    parameters: {
+      type: "OBJECT",
+      properties: {}
+    }
+  },
+  {
+    name: "applyLabel",
+    description: "Apply or remove labels from an email by ID",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        messageId: { type: "STRING", description: "The ID of the Gmail message" },
+        addLabelIds: { type: "ARRAY", items: { type: "STRING" }, description: "Array of label IDs to add (e.g., INBOX, UNREAD, STARRED)" },
+        removeLabelIds: { type: "ARRAY", items: { type: "STRING" }, description: "Array of label IDs to remove (e.g., UNREAD to mark as read)" }
+      },
+      required: ["messageId"]
+    }
+  },
+  {
+    name: "createDraft",
+    description: "Create a draft email reply",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        to: { type: "STRING", description: "Recipient email address" },
+        subject: { type: "STRING", description: "Subject of the email" },
+        body: { type: "STRING", description: "Body of the email" }
+      },
+      required: ["to", "subject", "body"]
+    }
+  },
+  {
+    name: "sendDraft",
+    description: "Send a previously created draft email",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        draftId: { type: "STRING", description: "The ID of the draft to send" }
+      },
+      required: ["draftId"]
+    }
   }
 ];
 
@@ -149,6 +205,11 @@ export async function callGeminiVertex(personaContent, userTask) {
           else if (call.name === 'takeScreenshot') toolResult = await systemTools.takeScreenshot(args.filepath);
           else if (call.name === 'runCommand') toolResult = await systemTools.runCommand(args.cmd);
           else if (call.name === 'openApplication') toolResult = await systemTools.openApplication(args.appName);
+          else if (call.name === 'fetchUnreadEmails') toolResult = await gmailTools.fetchUnreadEmails(args.maxResults);
+          else if (call.name === 'listLabels') toolResult = await gmailTools.listLabels();
+          else if (call.name === 'applyLabel') toolResult = await gmailTools.applyLabel(args.messageId, args.addLabelIds, args.removeLabelIds);
+          else if (call.name === 'createDraft') toolResult = await gmailTools.createDraft(args.to, args.subject, args.body);
+          else if (call.name === 'sendDraft') toolResult = await gmailTools.sendDraft(args.draftId);
           else toolResult = `Error: Tool ${call.name} not found locally.`;
           
           if (typeof toolResult !== 'string') {
