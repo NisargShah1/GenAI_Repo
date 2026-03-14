@@ -1,47 +1,120 @@
 import { exec } from 'child_process';
 import util from 'util';
+import { chromium } from 'playwright';
 
 const execAsync = util.promisify(exec);
 
-// NOTE: In a full production environment, you would use 'playwright' or 'puppeteer'
-// for real browser automation. We provide stubbed or lightweight implementations here.
-// To use playwright: `npm install playwright` and import `{ chromium } from 'playwright'`
-
 let browserInstance = null;
+let contextInstance = null;
 let pageInstance = null;
 
-/**
- * Open a browser and navigate to a URL.
- * Requires Playwright or Puppeteer in production. This acts as a mock/stub.
- */
-export async function browserOpen(url) {
-  console.log(`🌐 [Browser] Opening URL: ${url}`);
-  // Mock implementation for the agent persona
-  return `Successfully opened browser and navigated to ${url}`;
+async function ensureBrowser(launchOptions = {}) {
+  if (pageInstance && browserInstance) {
+    try {
+      const closed = await pageInstance.isClosed();
+      if (!closed) return;
+    } catch (e) {
+      // ignore and continue to ensure browser
+    }
+  }
+  if (!browserInstance) {
+    // Determine headless mode: explicit launchOptions.headless -> env var -> default true
+    const envVal = process.env.PLAYWRIGHT_HEADLESS;
+    // Default to headful (false) unless explicitly requested via env or options.
+    const defaultHeadless = (typeof envVal !== 'undefined') ? (envVal === 'true' || envVal === '1') : false;
+    const headless = (typeof launchOptions.headless !== 'undefined') ? launchOptions.headless : defaultHeadless;
+    const commonLaunch = { headless, args: ['--no-sandbox'] };
+    try {
+      browserInstance = await chromium.launch({ ...commonLaunch });
+    } catch (err) {
+      console.warn('Default chromium launch failed, trying system Chrome...', err.message);
+      // Fallback to system-installed Chrome (if available)
+      try {
+        browserInstance = await chromium.launch({ ...commonLaunch, channel: 'chrome' });
+      } catch (err2) {
+        console.error('Failed to launch any chromium/browser:', err2.message);
+        throw err2;
+      }
+    }
+  }
+  if (!contextInstance) {
+    contextInstance = await browserInstance.newContext();
+  }
+  pageInstance = await contextInstance.newPage();
 }
 
 /**
- * Click an element in the browser.
+ * Open a browser and navigate to a URL using Playwright.
  */
-export async function browserClick(selector) {
-  console.log(`🖱️ [Browser] Clicking element: ${selector}`);
-  return `Successfully clicked element matching ${selector}`;
+export async function browserOpen(url, options = {}) {
+  await ensureBrowser(options);
+  const timeout = options.timeout ?? 30000;
+  const waitModes = [options.waitUntil || 'domcontentloaded', 'load', 'networkidle'];
+  let lastErr = null;
+  for (const waitUntil of waitModes) {
+    try {
+      await pageInstance.goto(url, { waitUntil, timeout });
+      return `Opened ${url}`;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`browserOpen: navigation to ${url} using ${waitUntil} failed: ${err.message}`);
+    }
+  }
+  throw lastErr;
 }
 
 /**
- * Type text into an element in the browser.
+ * Click an element in the browser using Playwright.
  */
-export async function browserType(selector, text) {
-  console.log(`⌨️ [Browser] Typing "${text}" into element: ${selector}`);
-  return `Successfully typed text into ${selector}`;
+export async function browserClick(selector, opts = {}) {
+  if (!pageInstance) await ensureBrowser();
+  await pageInstance.waitForSelector(selector, { state: 'visible', timeout: opts.timeout ?? 10000 });
+  await pageInstance.click(selector, opts);
+  return `Clicked ${selector}`;
 }
 
 /**
- * Extract text from an element in the browser.
+ * Type text into an element in the browser using Playwright.
  */
-export async function browserExtract(selector) {
-  console.log(`🔍 [Browser] Extracting text from: ${selector}`);
-  return `Extracted sample data from ${selector}`;
+export async function browserType(selector, text, opts = {}) {
+  if (!pageInstance) await ensureBrowser();
+  await pageInstance.waitForSelector(selector, { state: 'visible', timeout: opts.timeout ?? 10000 });
+  await pageInstance.fill(selector, text, opts);
+  return `Typed into ${selector}`;
+}
+
+/**
+ * Extract text from an element in the browser using Playwright.
+ */
+export async function browserExtract(selector, opts = {}) {
+  if (!pageInstance) await ensureBrowser();
+  const timeout = opts.timeout ?? 10000;
+  try {
+    if (selector) {
+      await pageInstance.waitForSelector(selector, { state: 'visible', timeout });
+      const txt = await pageInstance.textContent(selector);
+      return txt ? txt.trim() : '';
+    }
+    // If no selector provided, return full page content
+    return await pageInstance.content();
+  } catch (err) {
+    console.warn(`browserExtract initial wait failed for ${selector}: ${err.message}`);
+    // Try a best-effort fallback by evaluating in page context (avoids strict waiting)
+    try {
+      const fallback = await pageInstance.evaluate((sel) => {
+        try {
+          const el = document.querySelector(sel);
+          return el ? el.textContent : null;
+        } catch (e) {
+          return null;
+        }
+      }, selector);
+      if (fallback) return fallback.trim();
+    } catch (e) {
+      console.warn('browserExtract fallback evaluate failed:', e.message);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -70,7 +143,14 @@ export async function runCommand(cmd) {
  */
 export async function takeScreenshot(filepath = 'screenshot.png') {
   console.log(`📸 [OS] Taking screenshot to: ${filepath}`);
-  return `Screenshot saved successfully to ${filepath}`;
+  if (!pageInstance) await ensureBrowser();
+  try {
+    await pageInstance.screenshot({ path: filepath, fullPage: true });
+    return `Screenshot saved successfully to ${filepath}`;
+  } catch (err) {
+    console.warn(`takeScreenshot failed: ${err.message}`);
+    throw err;
+  }
 }
 
 /**

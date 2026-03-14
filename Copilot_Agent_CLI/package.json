@@ -20,6 +20,7 @@
     "exceljs": "^4.4.0",
     "googleapis": "^171.4.0",
     "inquirer": "^9.2.12",
-    "ollama": "^0.6.3"
+    "ollama": "^0.6.3",
+    "playwright": "^1.44.0"
   }
 }
