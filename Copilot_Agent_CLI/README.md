@@ -67,6 +67,24 @@ When you run a command for the first time, the CLI will securely prompt you for 
 - **Gmail**: Prompts for `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`.
 - **Vertex AI (Gemini)**: Prompts for `GCP_PROJECT_ID`. Ensure you have authenticated using `gcloud auth application-default login`.
 
+### 3. Install & Setup Ollama Locally (Optional)
+If you prefer to run models locally without relying on cloud providers, you can use Ollama.
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+**Windows:**
+Download the installer from [ollama.com/download](https://ollama.com/download).
+
+**Setup the Model:**
+After installation, start the Ollama service (if it isn't already running) and pull a model (e.g., `llama3` or `phi3`):
+```bash
+ollama serve &
+ollama run llama3
+```
+
 ---
 
 ## 🤖 Supported Providers
@@ -90,13 +108,28 @@ node cli/index.js -p ollama -m phi3 persona dev-agent "Add a feature to tools/se
 Behaves like a senior software engineer. It takes a requirement, understands the repo, plans changes, searches the web for documentation, implements code, writes tests, validates, and iterates until the requirement is satisfied.
 
 **Scenario:** You need to add pagination to an existing API endpoint but don't want to write the boilerplate.
-**Steps:**
+
+**Running the Example with Vertex AI (Gemini):**
 1. Open your terminal in the CLI directory.
 2. Run the agent natively using Gemini Vertex AI:
    ```bash
    node cli/index.js -p vertex implement "Add pagination to the commit listing API in tools/github.js"
    ```
 3. Gemini will assume the `dev-agent` persona, read the repository context, plan the strategy, implement the code, and print the output step-by-step.
+
+**Running the Example with Local Ollama:**
+1. Ensure Ollama is running and you have pulled a model (e.g., `llama3` or `phi3`).
+2. Run the CLI tool specifying the `ollama` provider and the model:
+   ```bash
+   node cli/index.js -p ollama -m llama3 implement "Add pagination to the commit listing API in tools/github.js"
+   ```
+3. The local model will execute the same persona-driven planning and implementation locally.
+
+**Running the Example with GitHub Copilot Chat:**
+1. Open GitHub Copilot Chat in your IDE (VS Code / IntelliJ).
+2. Use the `@workspace` command to pass the persona context and instructions:
+   > `@workspace Read the persona definition in Copilot_Agent_CLI/personas/dev-agent.md. Adopt this persona and add pagination to the commit listing API in tools/github.js.`
+3. Copilot will review your repo files and the persona rules to generate a comprehensive fix directly in the chat window, ready for you to apply.
 
 ### 2. The Executive Email Assistant (`email-assistant`)
 An autonomous assistant that manages your Gmail inbox. It reads unread emails, categorizes them, archives newsletters, and drafts replies to important messages. **It will never send an email without your explicit review.**
