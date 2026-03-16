@@ -2,6 +2,7 @@ import ollama from 'ollama';
 import * as systemTools from './system.js';
 import * as gmailTools from './gmail.js';
 import * as orchestratorTools from './orchestrator.js';
+import * as memoryTools from './memory.js';
 
 // Ollama tool schemas (OpenAI compatible)
 const ollamaTools = [
@@ -32,6 +33,41 @@ const ollamaTools = [
           task: { type: "string", description: "The task for the sub-agent to execute" }
         },
         required: ["personaName", "task"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "listMemories",
+      description: "List all existing memory topics to check for past context.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "readMemory",
+      description: "Read memory for a specific topic.",
+      parameters: {
+        type: "object",
+        properties: { topic: { type: "string", description: "The memory topic to read." } },
+        required: ["topic"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "writeMemory",
+      description: "Write/append memory for a specific topic. Use a new topic name to create a new category if the query type is new.",
+      parameters: {
+        type: "object",
+        properties: {
+          topic: { type: "string", description: "The memory topic to write to." },
+          content: { type: "string", description: "The knowledge or context to remember." }
+        },
+        required: ["topic", "content"]
       }
     }
   }
@@ -81,6 +117,9 @@ export async function callOllama(personaContent, userTask, modelName = 'phi3') {
         try {
           if (name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
           else if (name === 'spawnSubAgent') toolResult = await orchestratorTools.spawnSubAgent(args.personaName, args.task);
+          else if (name === 'listMemories') toolResult = memoryTools.listMemories();
+          else if (name === 'readMemory') toolResult = memoryTools.readMemory(args.topic);
+          else if (name === 'writeMemory') toolResult = memoryTools.writeMemory(args.topic, args.content);
           else toolResult = `Error: Tool ${name} not found locally.`;
           
           if (typeof toolResult !== 'string') toolResult = JSON.stringify(toolResult);

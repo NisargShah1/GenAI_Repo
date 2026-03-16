@@ -3,6 +3,7 @@ import { ensureAuthenticated } from './auth.js';
 import * as systemTools from './system.js';
 import * as gmailTools from './gmail.js';
 import * as orchestratorTools from './orchestrator.js';
+import * as memoryTools from './memory.js';
 
 // Define the function declarations for Vertex AI
 const systemToolDeclarations = [
@@ -162,6 +163,34 @@ const systemToolDeclarations = [
       },
       required: ["personaName", "task"]
     }
+  },
+  {
+    name: "listMemories",
+    description: "List all existing memory topics to check for past context.",
+    parameters: { type: "OBJECT", properties: {} }
+  },
+  {
+    name: "readMemory",
+    description: "Read memory for a specific topic.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING", description: "The memory topic to read." }
+      },
+      required: ["topic"]
+    }
+  },
+  {
+    name: "writeMemory",
+    description: "Write/append memory for a specific topic. Use a new topic name to create a new category if the query type is new.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING", description: "The memory topic to write to." },
+        content: { type: "STRING", description: "The knowledge or context to remember." }
+      },
+      required: ["topic", "content"]
+    }
   }
 ];
 
@@ -237,6 +266,9 @@ export async function callGeminiVertex(personaContent, userTask) {
           else if (call.name === 'sendDraft') toolResult = await gmailTools.sendDraft(args.draftId);
           else if (call.name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
           else if (call.name === 'spawnSubAgent') toolResult = await orchestratorTools.spawnSubAgent(args.personaName, args.task);
+          else if (call.name === 'listMemories') toolResult = memoryTools.listMemories();
+          else if (call.name === 'readMemory') toolResult = memoryTools.readMemory(args.topic);
+          else if (call.name === 'writeMemory') toolResult = memoryTools.writeMemory(args.topic, args.content);
           else toolResult = `Error: Tool ${call.name} not found locally.`;
           
           if (typeof toolResult !== 'string') {
