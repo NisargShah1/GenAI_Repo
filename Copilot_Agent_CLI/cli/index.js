@@ -54,7 +54,7 @@ program
     let personaContent = fs.readFileSync(personaPath, 'utf8');
     
     // Inject OS Context dynamically so the LLM knows what platform it is running on
-    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\n`;
+    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE 1: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\nCRITICAL RULE 2: Before generating or writing new files, ALWAYS check if the files or directories already exist using runCommand or readFile. If they exist, read and analyze them first, then resume progress from where it left off instead of overwriting from scratch.\n`;
     personaContent += osContext;
 
     if (opts.provider === 'vertex') {
@@ -110,7 +110,7 @@ program
     let personaContent = fs.readFileSync(personaPath, 'utf8');
     
     // Inject OS Context dynamically so the LLM knows what platform it is running on
-    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\n`;
+    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE 1: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\nCRITICAL RULE 2: Before generating or writing new files, ALWAYS check if the files or directories already exist using runCommand or readFile. If they exist, read and analyze them first, then resume progress from where it left off instead of overwriting from scratch.\n`;
     personaContent += osContext;
 
     if (opts.provider === 'vertex') {
