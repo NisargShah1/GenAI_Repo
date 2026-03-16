@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ensureSecrets } from '../tools/config.js';
@@ -50,7 +51,11 @@ program
       process.exit(1);
     }
 
-    const personaContent = fs.readFileSync(personaPath, 'utf8');
+    let personaContent = fs.readFileSync(personaPath, 'utf8');
+    
+    // Inject OS Context dynamically so the LLM knows what platform it is running on
+    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\n`;
+    personaContent += osContext;
 
     if (opts.provider === 'vertex') {
       await callGeminiVertex(personaContent, requirement);
@@ -102,7 +107,11 @@ program
       process.exit(1);
     }
 
-    const personaContent = fs.readFileSync(personaPath, 'utf8');
+    let personaContent = fs.readFileSync(personaPath, 'utf8');
+    
+    // Inject OS Context dynamically so the LLM knows what platform it is running on
+    const osContext = `\n\n--- SYSTEM CONTEXT ---\nYou are executing on a ${os.type()} OS (${os.platform()}, release: ${os.release()}, arch: ${os.arch()}).\nCRITICAL RULE: All shell commands (if using runCommand), file paths, and environment variables MUST be strictly formatted for this specific operating system.\n`;
+    personaContent += osContext;
 
     if (opts.provider === 'vertex') {
       await callGeminiVertex(personaContent, task);
