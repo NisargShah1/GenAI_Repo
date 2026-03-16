@@ -34,8 +34,21 @@ export async function spawnSubAgent(personaName, task) {
     const cliPath = path.join(__dirname, '../cli/index.js');
     console.log(`\n🤖 Orchestrator spawning sub-agent: [${personaName}] for task: "${task}"...`);
     
+    // Forward the provider and model from the parent process to the sub-agent
+    const args = ['persona', personaName, task];
+    
+    const providerIndex = process.argv.findIndex(arg => arg === '-p' || arg === '--provider');
+    if (providerIndex !== -1 && process.argv.length > providerIndex + 1) {
+      args.push('-p', process.argv[providerIndex + 1]);
+    }
+    
+    const modelIndex = process.argv.findIndex(arg => arg === '-m' || arg === '--model');
+    if (modelIndex !== -1 && process.argv.length > modelIndex + 1) {
+      args.push('-m', process.argv[modelIndex + 1]);
+    }
+    
     // Spawn the sub-agent as a child process of the orchestrator
-    const child = spawn('node', [cliPath, 'persona', personaName, task]);
+    const child = spawn('node', [cliPath, ...args]);
     
     let output = '';
     
