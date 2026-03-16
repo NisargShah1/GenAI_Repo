@@ -2,6 +2,7 @@ import { VertexAI } from '@google-cloud/vertexai';
 import { ensureAuthenticated } from './auth.js';
 import * as systemTools from './system.js';
 import * as gmailTools from './gmail.js';
+import * as orchestratorTools from './orchestrator.js';
 
 // Define the function declarations for Vertex AI
 const systemToolDeclarations = [
@@ -137,6 +138,30 @@ const systemToolDeclarations = [
       },
       required: ["draftId"]
     }
+  },
+  {
+    name: "createPersona",
+    description: "Creates a new specialized persona markdown file dynamically.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "The name of the persona (e.g., 'db-expert')" },
+        content: { type: "STRING", description: "The markdown content defining the persona's role and rules." }
+      },
+      required: ["name", "content"]
+    }
+  },
+  {
+    name: "spawnSubAgent",
+    description: "Spawns a background process running the CLI with the specified persona and task.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        personaName: { type: "STRING", description: "The name of the persona file (without .md)" },
+        task: { type: "STRING", description: "The task for the sub-agent to execute" }
+      },
+      required: ["personaName", "task"]
+    }
   }
 ];
 
@@ -210,6 +235,8 @@ export async function callGeminiVertex(personaContent, userTask) {
           else if (call.name === 'applyLabel') toolResult = await gmailTools.applyLabel(args.messageId, args.addLabelIds, args.removeLabelIds);
           else if (call.name === 'createDraft') toolResult = await gmailTools.createDraft(args.to, args.subject, args.body);
           else if (call.name === 'sendDraft') toolResult = await gmailTools.sendDraft(args.draftId);
+          else if (call.name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
+          else if (call.name === 'spawnSubAgent') toolResult = await orchestratorTools.spawnSubAgent(args.personaName, args.task);
           else toolResult = `Error: Tool ${call.name} not found locally.`;
           
           if (typeof toolResult !== 'string') {
