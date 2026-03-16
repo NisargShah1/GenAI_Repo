@@ -164,7 +164,10 @@ export async function runCommand(cmd) {
   }
 
   try {
-    const { stdout, stderr } = await execAsync(cmd);
+    const { stdout, stderr } = await execAsync(cmd, { 
+      maxBuffer: 10 * 1024 * 1024, // 10MB to prevent hanging on large outputs (like npm install)
+      timeout: 180000 // 3 minute timeout to prevent infinite hangs
+    });
     if (stderr) console.warn(`[OS] Warning: ${stderr}`);
     return stdout;
   } catch (error) {
