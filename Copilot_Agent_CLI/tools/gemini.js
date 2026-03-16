@@ -75,6 +75,29 @@ const systemToolDeclarations = [
     }
   },
   {
+    name: "readFile",
+    description: "Read the contents of a file",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        filepath: { type: "STRING", description: "Path to the file to read" }
+      },
+      required: ["filepath"]
+    }
+  },
+  {
+    name: "writeFile",
+    description: "Write content to a file. Overwrites if exists, creates if it doesn't.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        filepath: { type: "STRING", description: "Path to the file to write" },
+        content: { type: "STRING", description: "Content to write into the file" }
+      },
+      required: ["filepath", "content"]
+    }
+  },
+  {
     name: "openApplication",
     description: "Open a local application",
     parameters: {
@@ -259,6 +282,8 @@ export async function callGeminiVertex(personaContent, userTask) {
           else if (call.name === 'takeScreenshot') toolResult = await systemTools.takeScreenshot(args.filepath);
           else if (call.name === 'runCommand') toolResult = await systemTools.runCommand(args.cmd);
           else if (call.name === 'openApplication') toolResult = await systemTools.openApplication(args.appName);
+          else if (call.name === 'readFile') toolResult = await systemTools.readFile(args.filepath);
+          else if (call.name === 'writeFile') toolResult = await systemTools.writeFile(args.filepath, args.content);
           else if (call.name === 'fetchUnreadEmails') toolResult = await gmailTools.fetchUnreadEmails(args.maxResults);
           else if (call.name === 'listLabels') toolResult = await gmailTools.listLabels();
           else if (call.name === 'applyLabel') toolResult = await gmailTools.applyLabel(args.messageId, args.addLabelIds, args.removeLabelIds);

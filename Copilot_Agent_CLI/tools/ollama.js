@@ -9,6 +9,33 @@ const ollamaTools = [
   {
     type: "function",
     function: {
+      name: "readFile",
+      description: "Read the contents of a file",
+      parameters: {
+        type: "object",
+        properties: { filepath: { type: "string", description: "Path to the file to read" } },
+        required: ["filepath"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "writeFile",
+      description: "Write content to a file.",
+      parameters: {
+        type: "object",
+        properties: {
+          filepath: { type: "string", description: "Path to the file to write" },
+          content: { type: "string", description: "Content to write into the file" }
+        },
+        required: ["filepath", "content"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "createPersona",
       description: "Creates a new specialized persona markdown file dynamically.",
       parameters: {
@@ -115,7 +142,9 @@ export async function callOllama(personaContent, userTask, modelName = 'phi3') {
         let toolResult = "";
         
         try {
-          if (name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
+          if (name === 'readFile') toolResult = await systemTools.readFile(args.filepath);
+          else if (name === 'writeFile') toolResult = await systemTools.writeFile(args.filepath, args.content);
+          else if (name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
           else if (name === 'spawnSubAgent') toolResult = await orchestratorTools.spawnSubAgent(args.personaName, args.task);
           else if (name === 'listMemories') toolResult = memoryTools.listMemories();
           else if (name === 'readMemory') toolResult = memoryTools.readMemory(args.topic);

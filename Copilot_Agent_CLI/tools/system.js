@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { exec } from 'child_process';
 import util from 'util';
 import { chromium } from 'playwright';
@@ -114,6 +116,38 @@ export async function browserExtract(selector, opts = {}) {
       console.warn('browserExtract fallback evaluate failed:', e.message);
     }
     throw err;
+  }
+}
+
+/**
+ * Execute a safe shell command on the local OS.
+ */
+/**
+ * Read file content.
+ */
+export async function readFile(filepath) {
+  console.log(`📄 [FS] Reading file: ${filepath}`);
+  try {
+    return fs.readFileSync(filepath, 'utf8');
+  } catch (error) {
+    throw new Error(`Failed to read file ${filepath}: ${error.message}`);
+  }
+}
+
+/**
+ * Write content to a file.
+ */
+export async function writeFile(filepath, content) {
+  console.log(`💾 [FS] Writing file: ${filepath}`);
+  try {
+    const dir = path.dirname(filepath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filepath, content, 'utf8');
+    return `Successfully wrote to ${filepath}`;
+  } catch (error) {
+    throw new Error(`Failed to write file ${filepath}: ${error.message}`);
   }
 }
 
