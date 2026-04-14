@@ -51,7 +51,7 @@ def get_embedding_function(model_type="huggingface"):
     """Returns the embedding function based on preference."""
     if model_type == "google":
         # Requires GOOGLE_API_KEY in environment
-        return GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     else:
         # Default: Local HuggingFace (Cost-effective & Fast)
         return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -78,6 +78,6 @@ if __name__ == "__main__":
         chunks = split_documents(docs)
         
         # Choose embedding model: 'huggingface' or 'google'
-        embedding_fn = get_embedding_function(model_type="huggingface") 
+        embedding_fn = get_embedding_function(model_type="google") 
         
         create_vector_db(chunks, embedding_fn)
