@@ -9,17 +9,20 @@ import shutil
 
 # Configuration
 DATA_PATH = "data"
-DB_PATH = "faiss_db"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
-def load_documents():
-    """Loads all PDFs from the data directory."""
+def get_db_path(model_type):
+    return f"faiss_db_{model_type}"
+
+def load_documents(model_type):
+    """Loads all PDFs from the data directory for a specific model."""
     documents = []
-    pdf_files = glob.glob(os.path.join(DATA_PATH, "*.pdf"))
+    target_dir = os.path.join(DATA_PATH, model_type)
+    pdf_files = glob.glob(os.path.join(target_dir, "*.pdf"))
     
     if not pdf_files:
-        print(f"No PDFs found in {DATA_PATH}")
+        print(f"No PDFs found in {target_dir}")
         return []
 
     print(f"Found {len(pdf_files)} PDFs. Loading...")
@@ -56,28 +59,80 @@ def get_embedding_function(model_type="huggingface"):
         # Default: Local HuggingFace (Cost-effective & Fast)
         return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-def create_vector_db(chunks, embedding_function):
+def create_vector_db(chunks, embedding_function, db_path):
     """Creates (or updates) the FAISS vector store."""
     
     # Optional: Clear existing DB to start fresh (uncomment if needed)
-    # if os.path.exists(DB_PATH):
-    #     shutil.rmtree(DB_PATH)
+    # if os.path.exists(db_path):
+    #     shutil.rmtree(db_path)
 
     print("Creating Vector Database (FAISS)...")
     db = FAISS.from_documents(chunks, embedding_function)
-    db.save_local(DB_PATH)
-    print(f"Vector Database saved to {DB_PATH}")
+    db.save_local(db_path)
+    print(f"Vector Database saved to {db_path}")
+
+def process_single_document(file_path, embedding_function, model_type="huggingface", progress_callback=None):
+    """Processes a single document and appends it to the existing FAISS database."""
+    db_path = get_db_path(model_type)
+    print(f"Loading single document: {file_path}")
+    loader = PyMuPDFLoader(file_path)
+    docs = loader.load()
+    
+    if not docs:
+        print("No content could be loaded from the file.")
+        if progress_callback:
+            progress_callback(1.0, "Empty document.")
+        return False
+        
+    chunks = split_documents(docs)
+    total_chunks = len(chunks)
+    
+    if total_chunks == 0:
+        if progress_callback:
+            progress_callback(1.0, "No chunks generated.")
+        return False
+
+    if os.path.exists(db_path):
+        print(f"Loading existing Vector Database from {db_path}...")
+        db = FAISS.load_local(db_path, embedding_function, allow_dangerous_deserialization=True)
+    else:
+        print("No existing Vector Database found. A new one will be created.")
+        db = None
+
+    print(f"Embedding {total_chunks} chunks in batches...")
+    
+    batch_size = 5 # Small batch size to show UI progress often
+    for i in range(0, total_chunks, batch_size):
+        batch = chunks[i : i + batch_size]
+        if db is None:
+            db = FAISS.from_documents(batch, embedding_function)
+        else:
+            db.add_documents(batch)
+            
+        if progress_callback:
+            progress = min(1.0, (i + len(batch)) / total_chunks)
+            progress_callback(progress, f"Processed {min(i + len(batch), total_chunks)} / {total_chunks} chunks")
+            
+    db.save_local(db_path)
+    print(f"Vector Database saved to {db_path}")
+    if progress_callback:
+        progress_callback(1.0, "Done!")
+    return True
+
 
 if __name__ == "__main__":
     # Load environment variables (for Google API Key if needed)
     from dotenv import load_dotenv
     load_dotenv()
 
-    docs = load_documents()
+    # Choose embedding model: 'huggingface' or 'google'
+    model_type = "google"
+
+    docs = load_documents(model_type)
     if docs:
         chunks = split_documents(docs)
         
-        # Choose embedding model: 'huggingface' or 'google'
-        embedding_fn = get_embedding_function(model_type="google") 
+        embedding_fn = get_embedding_function(model_type=model_type) 
+        db_path = get_db_path(model_type)
         
-        create_vector_db(chunks, embedding_fn)
+        create_vector_db(chunks, embedding_fn, db_path)

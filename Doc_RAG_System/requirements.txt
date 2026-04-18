@@ -9,3 +9,5 @@ faiss-cpu
 python-dotenv
 pymupdf
 rank_bm25
+langchain-huggingface
+tf-keras
