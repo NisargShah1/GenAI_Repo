@@ -11,9 +11,7 @@ import java.util.Map;
 public class GeminiClient {
     private static final String API_KEY = System.getenv("GEMINI_API_KEY");
     private static final String MODEL = System.getenv().getOrDefault("GEMINI_MODEL", "gemini-pro");
-    private static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/"
-            + MODEL + ":generateContent?key=" + API_KEY;
-    private final ObjectMapper mapper = new ObjectMapper();
+    
 
 
     /**

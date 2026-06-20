@@ -1,0 +1,26 @@
+{
+  "name": "copilot-agent-cli",
+  "version": "1.0.0",
+  "description": "Autonomous GitHub Agent CLI for Copilot Integration",
+  "main": "cli/index.js",
+  "type": "module",
+  "bin": {
+    "gh-agent": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node cli/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google-cloud/vertexai": "^1.10.0",
+    "@octokit/rest": "^20.0.2",
+    "commander": "^11.1.0",
+    "conf": "^15.1.0",
+    "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
+    "googleapis": "^171.4.0",
+    "inquirer": "^9.2.12",
+    "ollama": "^0.6.3",
+    "playwright": "^1.58.2"
+  }
+}

@@ -1,0 +1,340 @@
+import { VertexAI } from '@google-cloud/vertexai';
+import { ensureAuthenticated } from './auth.js';
+import * as systemTools from './system.js';
+import * as gmailTools from './gmail.js';
+import * as orchestratorTools from './orchestrator.js';
+import * as memoryTools from './memory.js';
+
+// Define the function declarations for Vertex AI
+const systemToolDeclarations = [
+  {
+    name: "browserOpen",
+    description: "Open a browser and navigate to a URL",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        url: { type: "STRING", description: "The URL to navigate to" }
+      },
+      required: ["url"]
+    }
+  },
+  {
+    name: "browserClick",
+    description: "Click an element in the browser using a CSS selector",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        selector: { type: "STRING", description: "CSS selector of the element to click" }
+      },
+      required: ["selector"]
+    }
+  },
+  {
+    name: "browserType",
+    description: "Type text into an element in the browser",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        selector: { type: "STRING", description: "CSS selector of the input element" },
+        text: { type: "STRING", description: "Text to type" }
+      },
+      required: ["selector", "text"]
+    }
+  },
+  {
+    name: "browserExtract",
+    description: "Extract text content from an element in the browser",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        selector: { type: "STRING", description: "CSS selector of the element to extract text from" }
+      },
+      required: ["selector"]
+    }
+  },
+  {
+    name: "takeScreenshot",
+    description: "Take a screenshot of the current browser page",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        filepath: { type: "STRING", description: "File path to save the screenshot (e.g., screenshot.png)" }
+      },
+      required: ["filepath"]
+    }
+  },
+  {
+    name: "runCommand",
+    description: "Execute a safe shell command on the local OS",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        cmd: { type: "STRING", description: "Shell command to execute" }
+      },
+      required: ["cmd"]
+    }
+  },
+  {
+    name: "readFile",
+    description: "Read the contents of a file",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        filepath: { type: "STRING", description: "Path to the file to read" }
+      },
+      required: ["filepath"]
+    }
+  },
+  {
+    name: "writeFile",
+    description: "Write content to a file. Overwrites if exists, creates if it doesn't.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        filepath: { type: "STRING", description: "Path to the file to write" },
+        content: { type: "STRING", description: "Content to write into the file" }
+      },
+      required: ["filepath", "content"]
+    }
+  },
+  {
+    name: "openApplication",
+    description: "Open a local application",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        appName: { type: "STRING", description: "Name of the application to open" }
+      },
+      required: ["appName"]
+    }
+  },
+  {
+    name: "fetchUnreadEmails",
+    description: "Fetch recent unread emails from Gmail",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        maxResults: { type: "INTEGER", description: "Maximum number of unread emails to retrieve (default: 5)" }
+      }
+    }
+  },
+  {
+    name: "listLabels",
+    description: "List available Gmail labels (to get label IDs for applying/removing)",
+    parameters: {
+      type: "OBJECT",
+      properties: {}
+    }
+  },
+  {
+    name: "applyLabel",
+    description: "Apply or remove labels from an email by ID",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        messageId: { type: "STRING", description: "The ID of the Gmail message" },
+        addLabelIds: { type: "ARRAY", items: { type: "STRING" }, description: "Array of label IDs to add (e.g., INBOX, UNREAD, STARRED)" },
+        removeLabelIds: { type: "ARRAY", items: { type: "STRING" }, description: "Array of label IDs to remove (e.g., UNREAD to mark as read)" }
+      },
+      required: ["messageId"]
+    }
+  },
+  {
+    name: "createDraft",
+    description: "Create a draft email reply",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        to: { type: "STRING", description: "Recipient email address" },
+        subject: { type: "STRING", description: "Subject of the email" },
+        body: { type: "STRING", description: "Body of the email" }
+      },
+      required: ["to", "subject", "body"]
+    }
+  },
+  {
+    name: "sendDraft",
+    description: "Send a previously created draft email",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        draftId: { type: "STRING", description: "The ID of the draft to send" }
+      },
+      required: ["draftId"]
+    }
+  },
+  {
+    name: "createPersona",
+    description: "Creates a new specialized persona markdown file dynamically.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "The name of the persona (e.g., 'db-expert')" },
+        content: { type: "STRING", description: "The markdown content defining the persona's role and rules." }
+      },
+      required: ["name", "content"]
+    }
+  },
+  {
+    name: "spawnSubAgent",
+    description: "Spawns a background process running the CLI with the specified persona and task.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        personaName: { type: "STRING", description: "The name of the persona file (without .md)" },
+        task: { type: "STRING", description: "The task for the sub-agent to execute" }
+      },
+      required: ["personaName", "task"]
+    }
+  },
+  {
+    name: "listMemories",
+    description: "List all existing memory topics to check for past context.",
+    parameters: { type: "OBJECT", properties: {} }
+  },
+  {
+    name: "readMemory",
+    description: "Read memory for a specific topic.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING", description: "The memory topic to read." }
+      },
+      required: ["topic"]
+    }
+  },
+  {
+    name: "writeMemory",
+    description: "Write/append memory for a specific topic. Use a new topic name to create a new category if the query type is new.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING", description: "The memory topic to write to." },
+        content: { type: "STRING", description: "The knowledge or context to remember." }
+      },
+      required: ["topic", "content"]
+    }
+  }
+];
+
+/**
+ * Call Gemini on Google Cloud Vertex AI using the provided persona (system instruction) and prompt.
+ */
+export async function callGeminiVertex(personaContent, userTask) {
+  await ensureAuthenticated();
+
+  const project = process.env.GCP_PROJECT_ID;
+  const location = process.env.GCP_LOCATION || 'us-central1';
+
+  if (!project) {
+    throw new Error('GCP_PROJECT_ID is required to use Vertex AI Gemini. Please set it in process.env.GCP_PROJECT_ID');
+  }
+
+  console.log(`\n🧠 Initializing Vertex AI Gemini (Project: ${project}, Location: ${location})`);
+
+  const vertexAi = new VertexAI({ project, location });
+  
+  // Instantiate the model
+  const generativeModel = vertexAi.preview.getGenerativeModel({
+    model: 'gemini-2.5-pro', // Fallback to stable version
+    systemInstruction: {
+      role: 'system',
+      parts: [{ text: personaContent }]
+    },
+    tools: [{ functionDeclarations: systemToolDeclarations }],
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.2,
+    }
+  });
+
+  console.log(`⏳ Executing Agent Logic via Gemini 1.5 Pro...`);
+  console.log('--- START RESPONSE ---\n');
+
+  try {
+    const chat = generativeModel.startChat();
+    let response = await chat.sendMessage([{ text: userTask }]);
+
+    let callCount = 0;
+    const MAX_CALLS = 15;
+
+    // Handle Function Calling Loop
+    while (response.response.candidates && response.response.candidates[0].content.parts.some(p => p.functionCall)) {
+      if (callCount >= MAX_CALLS) {
+        console.log("\n⚠️ Max tool call limit reached. Stopping loop.");
+        break;
+      }
+      callCount++;
+
+      const functionCalls = response.response.candidates[0].content.parts.filter(p => p.functionCall).map(p => p.functionCall);
+      const functionResponses = [];
+
+      for (const call of functionCalls) {
+        console.log(`\n**[Tool Call]** \x1b[36m${call.name}\x1b[0m(${JSON.stringify(call.args)})`);
+        
+        let toolResult = "";
+        try {
+          const args = call.args;
+          if (call.name === 'browserOpen') toolResult = await systemTools.browserOpen(args.url);
+          else if (call.name === 'browserClick') toolResult = await systemTools.browserClick(args.selector);
+          else if (call.name === 'browserType') toolResult = await systemTools.browserType(args.selector, args.text);
+          else if (call.name === 'browserExtract') toolResult = await systemTools.browserExtract(args.selector);
+          else if (call.name === 'takeScreenshot') toolResult = await systemTools.takeScreenshot(args.filepath);
+          else if (call.name === 'runCommand') toolResult = await systemTools.runCommand(args.cmd);
+          else if (call.name === 'openApplication') toolResult = await systemTools.openApplication(args.appName);
+          else if (call.name === 'readFile') toolResult = await systemTools.readFile(args.filepath);
+          else if (call.name === 'writeFile') toolResult = await systemTools.writeFile(args.filepath, args.content);
+          else if (call.name === 'fetchUnreadEmails') toolResult = await gmailTools.fetchUnreadEmails(args.maxResults);
+          else if (call.name === 'listLabels') toolResult = await gmailTools.listLabels();
+          else if (call.name === 'applyLabel') toolResult = await gmailTools.applyLabel(args.messageId, args.addLabelIds, args.removeLabelIds);
+          else if (call.name === 'createDraft') toolResult = await gmailTools.createDraft(args.to, args.subject, args.body);
+          else if (call.name === 'sendDraft') toolResult = await gmailTools.sendDraft(args.draftId);
+          else if (call.name === 'createPersona') toolResult = orchestratorTools.createPersona(args.name, args.content);
+          else if (call.name === 'spawnSubAgent') toolResult = await orchestratorTools.spawnSubAgent(args.personaName, args.task);
+          else if (call.name === 'listMemories') toolResult = memoryTools.listMemories();
+          else if (call.name === 'readMemory') toolResult = memoryTools.readMemory(args.topic);
+          else if (call.name === 'writeMemory') toolResult = memoryTools.writeMemory(args.topic, args.content);
+          else toolResult = `Error: Tool ${call.name} not found locally.`;
+          
+          if (typeof toolResult !== 'string') {
+            toolResult = JSON.stringify(toolResult);
+          }
+        } catch (err) {
+          toolResult = `Error executing ${call.name}: ${err.message}`;
+          console.error(`\x1b[31m[Tool Execution Error]\x1b[0m ${err.message}`);
+        }
+
+        console.log(`**[Tool Output]**\n${toolResult.substring(0, 300)}${toolResult.length > 300 ? '... [truncated]' : ''}`);
+
+        functionResponses.push({
+          functionResponse: {
+            name: call.name,
+            response: { result: toolResult }
+          }
+        });
+      }
+
+      // Send the actual results of the local tools back to Gemini so it can continue
+      response = await chat.sendMessage(functionResponses);
+    }
+
+    // Print final natural language response text parts
+    if (response.response.candidates && response.response.candidates[0].content.parts) {
+       const finalParts = response.response.candidates[0].content.parts;
+       for (const part of finalParts) {
+         if (part.text) {
+           process.stdout.write(part.text);
+         }
+       }
+    }
+
+    console.log('\n\n--- END RESPONSE ---');
+  } catch (error) {
+    console.error('\n❌ Vertex AI Execution Error:', error.message);
+    if (error.message.includes('Unable to authenticate your request') || error.message.includes('Could not load the default credentials')) {
+        import('./auth.js').then(auth => auth.clearCredentials());
+        console.log('\nPlease run the command again to provide a new service account key.');
+    }
+    throw error;
+  }
+}

@@ -1,0 +1,13 @@
+langchain
+langchain-community
+langchain-google-genai
+streamlit
+google-generativeai
+sentence-transformers
+pypdf
+faiss-cpu
+python-dotenv
+pymupdf
+rank_bm25
+langchain-huggingface
+tf-keras

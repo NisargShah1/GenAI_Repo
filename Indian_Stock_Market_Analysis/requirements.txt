@@ -1,0 +1,10 @@
+google-genai
+yfinance
+pandas
+python-dotenv
+rich
+textblob
+streamlit
+plotly
+beautifulsoup4
+requests

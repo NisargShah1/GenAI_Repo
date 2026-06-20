@@ -32,7 +32,7 @@ public class AgentService {
 
         new Thread(() -> {
             try {
-                sink.tryEmitNext("🚀 Start: processing query -> " + prompt);
+                sink.tryEmitNext("Start: processing query -> " + prompt);
 
                 // 1) get tool list from MCP (name -> description)
                 Map<String, String> tools = Optional.ofNullable(mcp.listTools())
@@ -64,7 +64,7 @@ public class AgentService {
                         thoughtRaw = thoughtRaw.replace("```json", "").replace("```", "");
                         node = mapper.readTree(thoughtRaw);
                     } catch (Exception e) {
-                        sink.tryEmitNext("⚠Could not parse LLM JSON, fallback to direct response");
+                        sink.tryEmitNext("Could not parse LLM JSON, fallback to direct response");
                         finalAnswer = gemini.respond(prompt, context);
                         sink.tryEmitNext("Final Answer: " + finalAnswer);
                         break;
