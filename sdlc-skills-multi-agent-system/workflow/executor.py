@@ -145,7 +145,7 @@ class Executor:
 
         try:
             # Run the agent via Runner
-            output_text = run_agent(adk_agent, task_prompt)
+            output_text = run_agent(adk_agent, task_prompt, sprint_id=sprint_id)
 
             # 6. Update database and memories
             task.status = "COMPLETED"

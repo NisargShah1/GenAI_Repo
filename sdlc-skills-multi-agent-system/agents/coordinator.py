@@ -7,7 +7,7 @@ from session import active_session
 from memory.memory_manager import MemoryManager
 from workflow.planner import Planner, SprintPlan
 from workflow.executor import Executor
-from workflow.adk_runner import run_agent
+from workflow.adk_runner import run_agent, get_runner_manager
 
 logger = logging.getLogger("skillforge.agents.coordinator")
 
@@ -37,6 +37,9 @@ class Coordinator:
 
     def reset_session(self):
         """Manually reset the active session."""
+        sprint_id = active_session.active_sprint_id
+        if sprint_id is not None:
+            get_runner_manager().clear_session(sprint_id)
         active_session.active_sprint_id = None
         logger.info("Session manually reset by user")
 
@@ -59,6 +62,7 @@ class Coordinator:
             return self.get_sprint_status_report()
 
         if msg_clean in ("reset", "clear"):
+            get_runner_manager().clear_session(sprint_id)
             active_session.active_sprint_id = None
             return "Cleared active sprint session. You can now input a new requirement."
 
@@ -79,7 +83,7 @@ class Coordinator:
 
         # Generate structured plan using Planner
         try:
-            plan: SprintPlan = self.planner.generate_plan(requirement)
+            plan: SprintPlan = self.planner.generate_plan(requirement, sprint_id=sprint_id)
             
             # Commit tasks to DB
             for idx, task_plan in enumerate(plan.tasks):
@@ -233,7 +237,7 @@ class Coordinator:
         prompt = f"{chat_history_str}User's new message: {message}"
         
         try:
-            reply = run_agent(adk_agent, prompt)
+            reply = run_agent(adk_agent, prompt, sprint_id=sprint_id)
             
             # Save reply to memory
             self.memory_manager.add_chat_message(sprint_id, 'assistant', reply)

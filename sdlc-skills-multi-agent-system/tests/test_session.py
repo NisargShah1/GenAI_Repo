@@ -43,3 +43,16 @@ def test_session_manager_crud():
     sm.handle_approval(req_id, True)
     pending = sm.get_pending_approvals(sprint_id)
     assert len(pending) == 0
+
+
+def test_adk_session_id_mapping():
+    sm = SessionManager("sqlite:///:memory:")
+    sprint_id = sm.create_sprint("Build user dashboard")
+
+    assert sm.get_adk_session_id(sprint_id) is None
+
+    sm.set_adk_session_id(sprint_id, "adk-session-abc")
+    assert sm.get_adk_session_id(sprint_id) == "adk-session-abc"
+
+    sm.set_adk_session_id(sprint_id, None)
+    assert sm.get_adk_session_id(sprint_id) is None

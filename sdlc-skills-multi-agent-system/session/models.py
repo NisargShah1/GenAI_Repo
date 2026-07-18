@@ -10,6 +10,7 @@ class Sprint(Base):
     requirement = Column(Text, nullable=False)
     status = Column(String(50), default='PLANNED') # PLANNED, IN_PROGRESS, COMPLETED
     summary = Column(Text, nullable=True)
+    adk_session_id = Column(String(100), nullable=True) # ADK session id bound to this sprint
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tasks = relationship("Task", back_populates="sprint", cascade="all, delete-orphan")

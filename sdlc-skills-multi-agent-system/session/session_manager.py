@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 from config import DATABASE_URL
 from session.models import Base, Sprint, Task, CodeFile, MemoryRecord, ApprovalRequest
@@ -11,8 +11,22 @@ class SessionManager:
     def __init__(self, db_url: str = DATABASE_URL):
         self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
         Base.metadata.create_all(self.engine)
+        self._run_lightweight_migrations()
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
+
+    def _run_lightweight_migrations(self):
+        """Add columns introduced after the initial schema to existing databases.
+
+        The project has no migration framework and relies on
+        ``Base.metadata.create_all`` (which never alters existing tables), so we
+        additively patch older ``sprints`` tables that predate ``adk_session_id``.
+        """
+        inspector = inspect(self.engine)
+        existing_columns = {col["name"] for col in inspector.get_columns("sprints")}
+        if "adk_session_id" not in existing_columns:
+            with self.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE sprints ADD COLUMN adk_session_id VARCHAR(100)"))
 
     def get_db(self):
         return self.Session()
@@ -69,6 +83,18 @@ class SessionManager:
             loaded_skills=list(loaded_skills_set),
             generated_files=files_state
         )
+
+    def get_adk_session_id(self, sprint_id: int) -> Optional[str]:
+        db = self.get_db()
+        sprint = db.query(Sprint).filter(Sprint.id == sprint_id).first()
+        return sprint.adk_session_id if sprint else None
+
+    def set_adk_session_id(self, sprint_id: int, adk_session_id: Optional[str]):
+        db = self.get_db()
+        sprint = db.query(Sprint).filter(Sprint.id == sprint_id).first()
+        if sprint:
+            sprint.adk_session_id = adk_session_id
+            db.commit()
 
     def add_task(self, sprint_id: int, title: str, agent: str, description: str = "", skills_needed: List[str] = [], sequence: int = 0) -> int:
         db = self.get_db()
