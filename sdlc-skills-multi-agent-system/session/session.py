@@ -1,0 +1,2 @@
+class SessionState(dict):
+    pass

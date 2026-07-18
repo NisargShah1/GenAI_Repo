@@ -1,0 +1,8 @@
+.env
+*.db
+*.pyc
+.venv
+venv
+.vscode
+.github
+.env.local
