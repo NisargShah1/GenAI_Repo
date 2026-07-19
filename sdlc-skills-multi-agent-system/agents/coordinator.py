@@ -181,6 +181,32 @@ class Coordinator:
                 return str(e)
             return f"❌ Execution failed for task '{next_task.title}': {e}"
 
+    def approve_and_execute(self, request_id: int) -> str:
+        """Mark an approval request APPROVED and actually run the pending action.
+
+        Approving alone only flips the DB status; the file/command/commit side
+        effect is performed here by re-invoking the underlying tool.
+        """
+        import json
+        from session.models import ApprovalRequest
+        from tools.dispatch import execute_approved_action
+
+        db = self.session_manager.get_db()
+        req = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+        if not req:
+            return "Approval request not found."
+
+        tool_name = req.tool_name
+        arguments = json.loads(req.arguments)
+
+        self.session_manager.handle_approval(request_id, True)
+        return execute_approved_action(tool_name, arguments)
+
+    def reject_action(self, request_id: int, feedback: str = "") -> str:
+        """Mark an approval request REJECTED with optional feedback."""
+        self.session_manager.handle_approval(request_id, False, feedback)
+        return "Rejected."
+
     def get_sprint_status_report(self) -> str:
         """
         Generate a status report of the active sprint.

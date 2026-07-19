@@ -174,7 +174,8 @@ class SessionManager:
         req = ApprovalRequest(
             sprint_id=sprint_id,
             tool_name=tool_name,
-            arguments=json.dumps(arguments),
+            # Serialize with sorted keys so it matches the lookup in check_approval.
+            arguments=json.dumps(arguments, sort_keys=True),
             status='PENDING'
         )
         db.add(req)

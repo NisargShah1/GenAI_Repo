@@ -209,13 +209,13 @@ else:
                 col1, col2, col3 = st.columns([1, 1, 4])
                 with col1:
                     if st.button("🟢 Approve", key=f"app_{req.id}"):
-                        session_manager.handle_approval(req.id, True)
-                        st.success("Approved!")
+                        result = coordinator.approve_and_execute(req.id)
+                        st.success(f"Approved & executed: {result}")
                         st.rerun()
                 with col2:
                     feedback_input = st.text_input("Feedback if rejecting:", key=f"feed_text_{req.id}")
                     if st.button("🔴 Reject", key=f"rej_{req.id}"):
-                        session_manager.handle_approval(req.id, False, feedback_input)
+                        coordinator.reject_action(req.id, feedback_input)
                         st.warning("Rejected.")
                         st.rerun()
 
