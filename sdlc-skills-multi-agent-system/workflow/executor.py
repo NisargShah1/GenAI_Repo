@@ -1,11 +1,12 @@
 import logging
+import time
 from typing import List, Optional
 from google.adk import Agent
 from config import PRO_MODEL, FLASH_MODEL
 from skills.registry import get_skill
 from session.session_manager import SessionManager
 from memory.memory_manager import MemoryManager
-from workflow.adk_runner import run_agent
+from workflow.adk_runner import run_agent_with_usage
 
 # Import tools
 from tools.filesystem_tool import read_file, write_file, delete_file
@@ -144,8 +145,10 @@ class Executor:
         )
 
         try:
-            # Run the agent via Runner
-            output_text = run_agent(adk_agent, task_prompt, sprint_id=sprint_id)
+            # Run the agent via Runner, capturing real Gemini token usage.
+            start_time = time.perf_counter()
+            output_text, usage = run_agent_with_usage(adk_agent, task_prompt, sprint_id=sprint_id)
+            latency = time.perf_counter() - start_time
 
             # 6. Update database and memories
             task.status = "COMPLETED"
@@ -163,12 +166,12 @@ class Executor:
                 decision=f"Completed Task: {task.title} by {task.agent}."
             )
 
-            # Log metrics telemetry
-            latency_mock = 2.5 # placeholder latency
-            token_count_mock = len(output_text.split()) + prompt_size
+            # Log metrics telemetry with real token usage from Vertex AI.
             logger.info(
                 f"[TELEMETRY] Agent: {task.agent} | Skill size: {len(active_skills)} | "
-                f"Prompt size: {prompt_size} words | Tokens: {token_count_mock} | Latency: {latency_mock}s"
+                f"Prompt size: {prompt_size} words | Input tokens: {usage.input_tokens} | "
+                f"Thoughts tokens: {usage.thoughts_tokens} | Output tokens: {usage.output_tokens} | "
+                f"Total tokens: {usage.total_tokens} | Latency: {latency:.2f}s"
             )
 
             return output_text

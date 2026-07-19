@@ -14,7 +14,8 @@ sync across restarts.
 """
 import logging
 import uuid
-from typing import Dict, Optional
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
 
 from google.adk import Agent
 from google.adk.runners import Runner
@@ -26,6 +27,25 @@ from session import active_session
 logger = logging.getLogger("skillforge.workflow.adk_runner")
 
 APP_NAME = "skillforge"
+
+
+@dataclass
+class TokenUsage:
+    """Aggregated Gemini token usage across all events of a single run."""
+
+    input_tokens: int = 0
+    thoughts_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+    def add(self, usage_metadata) -> None:
+        """Accumulate one event's ``usage_metadata`` (may be None)."""
+        if usage_metadata is None:
+            return
+        self.input_tokens += usage_metadata.prompt_token_count or 0
+        self.thoughts_tokens += usage_metadata.thoughts_token_count or 0
+        self.output_tokens += usage_metadata.candidates_token_count or 0
+        self.total_tokens += usage_metadata.total_token_count or 0
 
 
 class ADKRunnerManager:
@@ -116,6 +136,18 @@ class ADKRunnerManager:
     def run(self, agent: Agent, prompt: str, sprint_id: Optional[int] = None,
             user_id: str = "default_user") -> str:
         """Run an ADK agent with a text prompt and return its final text output."""
+        result_text, _ = self.run_with_usage(
+            agent, prompt, sprint_id=sprint_id, user_id=user_id
+        )
+        return result_text
+
+    def run_with_usage(self, agent: Agent, prompt: str, sprint_id: Optional[int] = None,
+                       user_id: str = "default_user") -> Tuple[str, TokenUsage]:
+        """Run an ADK agent and return both its text output and token usage.
+
+        Token counts are read from each event's ``usage_metadata`` (populated by
+        the Vertex AI Gemini response) and summed across the run.
+        """
         session_id = self.get_or_create_session(sprint_id, user_id)
         runner = self._get_runner(agent)
 
@@ -127,11 +159,13 @@ class ADKRunnerManager:
         )
 
         final_text_parts = []
+        usage = TokenUsage()
         for event in runner.run(
             user_id=user_id,
             session_id=session_id,
             new_message=user_message,
         ):
+            usage.add(getattr(event, "usage_metadata", None))
             text = self._extract_text(event)
             if text:
                 final_text_parts.append(text)
@@ -141,7 +175,7 @@ class ADKRunnerManager:
         if not result_text:
             logger.warning(f"Agent '{agent.name}' produced no text output.")
 
-        return result_text
+        return result_text, usage
 
     @staticmethod
     def _extract_text(event) -> str:
@@ -166,6 +200,14 @@ def get_runner_manager() -> ADKRunnerManager:
     if _runner_manager is None:
         _runner_manager = ADKRunnerManager()
     return _runner_manager
+
+
+def run_agent_with_usage(agent: Agent, prompt: str, sprint_id: Optional[int] = None,
+                         user_id: str = "default_user") -> Tuple[str, TokenUsage]:
+    """Delegating helper returning both the text output and token usage."""
+    return get_runner_manager().run_with_usage(
+        agent, prompt, sprint_id=sprint_id, user_id=user_id
+    )
 
 
 def run_agent(agent: Agent, prompt: str, sprint_id: Optional[int] = None,

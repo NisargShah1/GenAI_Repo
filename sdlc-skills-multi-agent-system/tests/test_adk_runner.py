@@ -2,7 +2,7 @@ import pytest
 
 from session import active_session
 from session.session_manager import SessionManager
-from workflow.adk_runner import ADKRunnerManager, APP_NAME
+from workflow.adk_runner import ADKRunnerManager, TokenUsage, APP_NAME
 
 
 class _FakePart:
@@ -15,18 +15,28 @@ class _FakeContent:
         self.parts = [_FakePart(text)]
 
 
+class _FakeUsage:
+    def __init__(self, prompt=0, thoughts=0, candidates=0, total=0):
+        self.prompt_token_count = prompt
+        self.thoughts_token_count = thoughts
+        self.candidates_token_count = candidates
+        self.total_token_count = total
+
+
 class _FakeEvent:
-    def __init__(self, text):
+    def __init__(self, text, usage_metadata=None):
         self.content = _FakeContent(text)
         self.output = None
+        self.usage_metadata = usage_metadata
 
 
 class _FakeRunner:
     """Runner double that asserts the session was registered before running."""
 
-    def __init__(self, session_service, reply="hello"):
+    def __init__(self, session_service, reply="hello", events=None):
         self._session_service = session_service
         self._reply = reply
+        self._events = events
 
     def run(self, *, user_id, session_id, new_message):
         # Mirror ADK behavior: the session must already exist.
@@ -35,7 +45,11 @@ class _FakeRunner:
         )
         if session is None:
             raise AssertionError("Runner.run invoked with an unregistered session")
-        yield _FakeEvent(self._reply)
+        if self._events is not None:
+            for event in self._events:
+                yield event
+        else:
+            yield _FakeEvent(self._reply)
 
 
 class _FakeAgent:
@@ -114,6 +128,32 @@ def test_run_without_sprint_uses_transient_session(monkeypatch):
     result = manager.run(_FakeAgent(), "hi", sprint_id=None)
 
     assert result == "transient"
+
+
+def test_token_usage_add_handles_none():
+    usage = TokenUsage()
+    usage.add(None)
+    assert usage.total_tokens == 0
+
+
+def test_run_with_usage_aggregates_tokens(session_manager, monkeypatch):
+    manager = ADKRunnerManager()
+    sprint_id = session_manager.create_sprint("Build API")
+
+    events = [
+        _FakeEvent("part one ", _FakeUsage(prompt=100, thoughts=10, candidates=20, total=130)),
+        _FakeEvent("part two", _FakeUsage(prompt=5, thoughts=2, candidates=8, total=15)),
+    ]
+    fake = _FakeRunner(manager._session_service, events=events)
+    monkeypatch.setattr(manager, "_get_runner", lambda agent: fake)
+
+    text, usage = manager.run_with_usage(_FakeAgent(), "hi", sprint_id=sprint_id)
+
+    assert text == "part one \npart two"
+    assert usage.input_tokens == 105
+    assert usage.thoughts_tokens == 12
+    assert usage.output_tokens == 28
+    assert usage.total_tokens == 145
 
 
 def test_clear_session_removes_mapping(session_manager):
