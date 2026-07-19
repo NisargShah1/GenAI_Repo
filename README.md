@@ -16,6 +16,7 @@ This repository contains a collection of Generative AI projects exploring Agents
 | **[MCP Server (Python)](mcp_server/)** | Lightweight Python FastAPI server exposing basic MCP tools (e.g., Calculator). | Python, FastAPI, MCP |
 | **[MCP Server with AI Agent](mcp_server_with_AI_Agent/)** | Python FastAPI server integrated with LangGraph for agentic workflows (e.g., Jokes, Calculator). | Python, FastAPI, LangGraph |
 | **[Doc_RAG_System](Doc_RAG_System/)** | RAG system for querying scientific papers (PDFs) with hybrid retrieval and reranking. | Python, Streamlit, LangChain, FAISS, Gemini Pro |
+| **[SDLC Skills Multi-Agent System](sdlc-skills-multi-agent-system/)** | Multi-agent system that runs a full SDLC sprint (requirement→design→code→test→review→docs) with **skills loaded on demand** to shrink prompts, cut tokens, and lower latency; tracks per-task token/latency telemetry. | Python, Google ADK, Gemini 2.5, Streamlit, SQLite |
 
 ## 🚀 Getting Started
 
