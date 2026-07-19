@@ -147,20 +147,31 @@ with st.sidebar:
     st.markdown("### 📊 System Telemetry Traces")
     if active_session.active_sprint_id:
         tasks = db.query(Task).filter(Task.sprint_id == selected_sprint_id).all()
-        # Compile some stats
+        # Compile real telemetry stats from persisted per-task token usage.
         completed_tasks = [t for t in tasks if t.status == 'COMPLETED']
-        total_tokens = sum(len(t.output.split()) + 150 for t in completed_tasks if t.output)
+        total_tokens = sum(t.total_tokens or 0 for t in completed_tasks)
+        input_tokens = sum(t.input_tokens or 0 for t in completed_tasks)
+        thoughts_tokens = sum(t.thoughts_tokens or 0 for t in completed_tasks)
+        output_tokens = sum(t.output_tokens or 0 for t in completed_tasks)
+        latencies = [t.latency_seconds or 0 for t in completed_tasks]
+        avg_latency = (sum(latencies) / len(latencies)) if latencies else 0.0
         
         st.markdown(f"**Loaded Skills Count:** `{len(active_session.session_manager.load_sprint_state(selected_sprint_id).loaded_skills) if selected_sprint_id else 0}`")
         st.markdown(f"**Completed Steps:** `{len(completed_tasks)} / {len(tasks)}`")
-        st.markdown(f"**Estimated Tokens Used:** `{total_tokens}`")
-        st.markdown(f"**Average Latency:** `2.5s / step`")
+        st.markdown(f"**Total Tokens Used:** `{total_tokens}`")
+        st.markdown(f"**↳ Input / Thoughts / Output:** `{input_tokens} / {thoughts_tokens} / {output_tokens}`")
+        st.markdown(f"**Average Latency:** `{avg_latency:.2f}s / step`")
         
         # Telemetry detail logs
         if completed_tasks:
             st.markdown("**Logs:**")
             for ct in completed_tasks:
-                st.caption(f"🤖 `{ct.agent}` | Skills: `{ct.skills_needed}` | Prompt: ~150 words")
+                st.caption(
+                    f"🤖 `{ct.agent}` | Skills: `{ct.skills_needed}` | "
+                    f"Tokens: `{ct.total_tokens or 0}` (in {ct.input_tokens or 0} / "
+                    f"think {ct.thoughts_tokens or 0} / out {ct.output_tokens or 0}) | "
+                    f"Latency: `{(ct.latency_seconds or 0):.2f}s`"
+                )
     else:
         st.caption("Initiate a sprint to display execution telemetry.")
 
@@ -198,8 +209,32 @@ else:
                 # Format arguments nicely
                 if "content" in args_parsed:
                     # File write content
-                    st.code(args_parsed["content"][:300] + ("..." if len(args_parsed["content"]) > 300 else ""), language="java")
-                    st.caption(f"Path: `{args_parsed.get('path')}`")
+                    file_path = args_parsed.get("path", "")
+                    full_content = args_parsed["content"]
+                    is_markdown = file_path.lower().endswith((".md", ".markdown"))
+                    preview_lang = "markdown" if is_markdown else "java"
+                    st.code(
+                        full_content[:300] + ("..." if len(full_content) > 300 else ""),
+                        language=preview_lang,
+                    )
+                    st.caption(f"Path: `{file_path}`")
+                    # Full-content viewer so the whole generated file (e.g. a design
+                    # agent's .md) can be read before approving/rejecting.
+                    if len(full_content) > 300:
+                        with st.expander("📄 View full content"):
+                            if is_markdown:
+                                view_mode = st.radio(
+                                    "View mode",
+                                    ["Rendered", "Raw"],
+                                    horizontal=True,
+                                    key=f"view_mode_{req.id}",
+                                )
+                                if view_mode == "Rendered":
+                                    st.markdown(full_content)
+                                else:
+                                    st.code(full_content, language="markdown")
+                            else:
+                                st.code(full_content, language=preview_lang)
                 elif "command" in args_parsed:
                     # Shell command
                     st.code(args_parsed["command"], language="bash")
@@ -209,13 +244,13 @@ else:
                 col1, col2, col3 = st.columns([1, 1, 4])
                 with col1:
                     if st.button("🟢 Approve", key=f"app_{req.id}"):
-                        session_manager.handle_approval(req.id, True)
-                        st.success("Approved!")
+                        result = coordinator.approve_and_execute(req.id)
+                        st.success(f"Approved & executed: {result}")
                         st.rerun()
                 with col2:
                     feedback_input = st.text_input("Feedback if rejecting:", key=f"feed_text_{req.id}")
                     if st.button("🔴 Reject", key=f"rej_{req.id}"):
-                        session_manager.handle_approval(req.id, False, feedback_input)
+                        coordinator.reject_action(req.id, feedback_input)
                         st.warning("Rejected.")
                         st.rerun()
 

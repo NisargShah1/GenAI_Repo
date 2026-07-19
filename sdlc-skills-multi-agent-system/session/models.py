@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -10,6 +10,7 @@ class Sprint(Base):
     requirement = Column(Text, nullable=False)
     status = Column(String(50), default='PLANNED') # PLANNED, IN_PROGRESS, COMPLETED
     summary = Column(Text, nullable=True)
+    adk_session_id = Column(String(100), nullable=True) # ADK session id bound to this sprint
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tasks = relationship("Task", back_populates="sprint", cascade="all, delete-orphan")
@@ -28,6 +29,12 @@ class Task(Base):
     skills_needed = Column(Text, nullable=True) # comma-separated list of skill names
     output = Column(Text, nullable=True)
     sequence = Column(Integer, default=0)
+    # Token usage captured from the Vertex AI Gemini response for this task.
+    input_tokens = Column(Integer, default=0)
+    thoughts_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    latency_seconds = Column(Float, default=0.0)
 
     sprint = relationship("Sprint", back_populates="tasks")
 

@@ -1,13 +1,13 @@
 import logging
 from typing import Optional, List
 from google.adk import Agent
-from config import FLASH_MODEL
+from config import FLASH_MODEL, get_genai_client
 from session.session_manager import SessionManager
 from session import active_session
 from memory.memory_manager import MemoryManager
 from workflow.planner import Planner, SprintPlan
 from workflow.executor import Executor
-from workflow.adk_runner import run_agent
+from workflow.adk_runner import run_agent, get_runner_manager
 
 logger = logging.getLogger("skillforge.agents.coordinator")
 
@@ -37,6 +37,9 @@ class Coordinator:
 
     def reset_session(self):
         """Manually reset the active session."""
+        sprint_id = active_session.active_sprint_id
+        if sprint_id is not None:
+            get_runner_manager().clear_session(sprint_id)
         active_session.active_sprint_id = None
         logger.info("Session manually reset by user")
 
@@ -59,6 +62,7 @@ class Coordinator:
             return self.get_sprint_status_report()
 
         if msg_clean in ("reset", "clear"):
+            get_runner_manager().clear_session(sprint_id)
             active_session.active_sprint_id = None
             return "Cleared active sprint session. You can now input a new requirement."
 
@@ -79,7 +83,7 @@ class Coordinator:
 
         # Generate structured plan using Planner
         try:
-            plan: SprintPlan = self.planner.generate_plan(requirement)
+            plan: SprintPlan = self.planner.generate_plan(requirement, sprint_id=sprint_id)
             
             # Commit tasks to DB
             for idx, task_plan in enumerate(plan.tasks):
@@ -177,6 +181,32 @@ class Coordinator:
                 return str(e)
             return f"❌ Execution failed for task '{next_task.title}': {e}"
 
+    def approve_and_execute(self, request_id: int) -> str:
+        """Mark an approval request APPROVED and actually run the pending action.
+
+        Approving alone only flips the DB status; the file/command/commit side
+        effect is performed here by re-invoking the underlying tool.
+        """
+        import json
+        from session.models import ApprovalRequest
+        from tools.dispatch import execute_approved_action
+
+        db = self.session_manager.get_db()
+        req = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+        if not req:
+            return "Approval request not found."
+
+        tool_name = req.tool_name
+        arguments = json.loads(req.arguments)
+
+        self.session_manager.handle_approval(request_id, True)
+        return execute_approved_action(tool_name, arguments)
+
+    def reject_action(self, request_id: int, feedback: str = "") -> str:
+        """Mark an approval request REJECTED with optional feedback."""
+        self.session_manager.handle_approval(request_id, False, feedback)
+        return "Rejected."
+
     def get_sprint_status_report(self) -> str:
         """
         Generate a status report of the active sprint.
@@ -233,14 +263,13 @@ class Coordinator:
         prompt = f"{chat_history_str}User's new message: {message}"
         
         try:
-            reply = run_agent(adk_agent, prompt)
+            reply = run_agent(adk_agent, prompt, sprint_id=sprint_id)
             
             # Save reply to memory
             self.memory_manager.add_chat_message(sprint_id, 'assistant', reply)
             
             # Check for context pruning
-            from google import genai
-            client = genai.Client()
+            client = get_genai_client()
             self.memory_manager.summarize_and_prune(sprint_id, client)
             
             return reply

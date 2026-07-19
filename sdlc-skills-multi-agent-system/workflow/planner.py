@@ -1,7 +1,7 @@
 import logging
 import json
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from google.adk import Agent
 from config import PRO_MODEL
 from workflow.adk_runner import run_agent
@@ -37,7 +37,7 @@ class Planner:
             output_schema=SprintPlan
         )
 
-    def generate_plan(self, requirement: str) -> SprintPlan:
+    def generate_plan(self, requirement: str, sprint_id: Optional[int] = None) -> SprintPlan:
         """
         Analyze user requirement and output a structured SprintPlan.
         """
@@ -45,11 +45,11 @@ class Planner:
         prompt = f"Analyze and create a sprint task breakdown for this requirement:\n{requirement}"
         
         try:
-            result_text = run_agent(self.coordinator_agent, prompt)
+            result_text = run_agent(self.coordinator_agent, prompt, sprint_id=sprint_id)
             logger.info(f"ADK result text: {result_text[:500]}")
         except Exception as e:
             logger.error(f"ADK Agent run failed: {e}")
-            raise Exception(f"Google ADK Agent execution failed: {e}. Check GEMINI_API_KEY configuration.")
+            raise Exception(f"Google ADK Agent execution failed: {e}. Check Vertex AI configuration (GOOGLE_CLOUD_PROJECT / GOOGLE_APPLICATION_CREDENTIALS).")
         
         # Parse the result text as SprintPlan
         logger.info(f"Sprint plan raw output received, parsing...")
