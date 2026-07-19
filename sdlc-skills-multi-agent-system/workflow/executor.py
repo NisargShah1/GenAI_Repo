@@ -153,6 +153,11 @@ class Executor:
             # 6. Update database and memories
             task.status = "COMPLETED"
             task.output = output_text
+            task.input_tokens = usage.input_tokens
+            task.thoughts_tokens = usage.thoughts_tokens
+            task.output_tokens = usage.output_tokens
+            task.total_tokens = usage.total_tokens
+            task.latency_seconds = latency
             db.commit()
 
             # Record in memory

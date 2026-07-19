@@ -56,3 +56,29 @@ def test_adk_session_id_mapping():
 
     sm.set_adk_session_id(sprint_id, None)
     assert sm.get_adk_session_id(sprint_id) is None
+
+
+def test_task_token_usage_columns():
+    from session.models import Task
+
+    sm = SessionManager("sqlite:///:memory:")
+    sprint_id = sm.create_sprint("Build API")
+    task_id = sm.add_task(sprint_id, "Code", "coding_agent", "impl", ["java-skill"], 0)
+
+    db = sm.get_db()
+    task = db.query(Task).filter(Task.id == task_id).first()
+    # Default to 0 before any run.
+    assert task.total_tokens == 0
+    assert task.input_tokens == 0
+    assert task.latency_seconds == 0
+
+    task.input_tokens = 100
+    task.thoughts_tokens = 10
+    task.output_tokens = 25
+    task.total_tokens = 135
+    task.latency_seconds = 3.5
+    db.commit()
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    assert task.total_tokens == 135
+    assert task.latency_seconds == 3.5

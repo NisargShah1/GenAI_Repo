@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -29,6 +29,12 @@ class Task(Base):
     skills_needed = Column(Text, nullable=True) # comma-separated list of skill names
     output = Column(Text, nullable=True)
     sequence = Column(Integer, default=0)
+    # Token usage captured from the Vertex AI Gemini response for this task.
+    input_tokens = Column(Integer, default=0)
+    thoughts_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    latency_seconds = Column(Float, default=0.0)
 
     sprint = relationship("Sprint", back_populates="tasks")
 

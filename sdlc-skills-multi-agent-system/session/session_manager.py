@@ -23,10 +23,24 @@ class SessionManager:
         additively patch older ``sprints`` tables that predate ``adk_session_id``.
         """
         inspector = inspect(self.engine)
-        existing_columns = {col["name"] for col in inspector.get_columns("sprints")}
-        if "adk_session_id" not in existing_columns:
+        sprint_columns = {col["name"] for col in inspector.get_columns("sprints")}
+        if "adk_session_id" not in sprint_columns:
             with self.engine.begin() as conn:
                 conn.execute(text("ALTER TABLE sprints ADD COLUMN adk_session_id VARCHAR(100)"))
+
+        task_columns = {col["name"] for col in inspector.get_columns("tasks")}
+        task_additions = {
+            "input_tokens": "INTEGER DEFAULT 0",
+            "thoughts_tokens": "INTEGER DEFAULT 0",
+            "output_tokens": "INTEGER DEFAULT 0",
+            "total_tokens": "INTEGER DEFAULT 0",
+            "latency_seconds": "FLOAT DEFAULT 0",
+        }
+        missing = {name: ddl for name, ddl in task_additions.items() if name not in task_columns}
+        if missing:
+            with self.engine.begin() as conn:
+                for name, ddl in missing.items():
+                    conn.execute(text(f"ALTER TABLE tasks ADD COLUMN {name} {ddl}"))
 
     def get_db(self):
         return self.Session()
