@@ -209,8 +209,32 @@ else:
                 # Format arguments nicely
                 if "content" in args_parsed:
                     # File write content
-                    st.code(args_parsed["content"][:300] + ("..." if len(args_parsed["content"]) > 300 else ""), language="java")
-                    st.caption(f"Path: `{args_parsed.get('path')}`")
+                    file_path = args_parsed.get("path", "")
+                    full_content = args_parsed["content"]
+                    is_markdown = file_path.lower().endswith((".md", ".markdown"))
+                    preview_lang = "markdown" if is_markdown else "java"
+                    st.code(
+                        full_content[:300] + ("..." if len(full_content) > 300 else ""),
+                        language=preview_lang,
+                    )
+                    st.caption(f"Path: `{file_path}`")
+                    # Full-content viewer so the whole generated file (e.g. a design
+                    # agent's .md) can be read before approving/rejecting.
+                    if len(full_content) > 300:
+                        with st.expander("📄 View full content"):
+                            if is_markdown:
+                                view_mode = st.radio(
+                                    "View mode",
+                                    ["Rendered", "Raw"],
+                                    horizontal=True,
+                                    key=f"view_mode_{req.id}",
+                                )
+                                if view_mode == "Rendered":
+                                    st.markdown(full_content)
+                                else:
+                                    st.code(full_content, language="markdown")
+                            else:
+                                st.code(full_content, language=preview_lang)
                 elif "command" in args_parsed:
                     # Shell command
                     st.code(args_parsed["command"], language="bash")
