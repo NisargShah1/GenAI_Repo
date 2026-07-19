@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, List
 from google.adk import Agent
-from config import FLASH_MODEL
+from config import FLASH_MODEL, get_genai_client
 from session.session_manager import SessionManager
 from session import active_session
 from memory.memory_manager import MemoryManager
@@ -243,8 +243,7 @@ class Coordinator:
             self.memory_manager.add_chat_message(sprint_id, 'assistant', reply)
             
             # Check for context pruning
-            from google import genai
-            client = genai.Client()
+            client = get_genai_client()
             self.memory_manager.summarize_and_prune(sprint_id, client)
             
             return reply

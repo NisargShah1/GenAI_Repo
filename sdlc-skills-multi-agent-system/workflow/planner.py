@@ -49,7 +49,7 @@ class Planner:
             logger.info(f"ADK result text: {result_text[:500]}")
         except Exception as e:
             logger.error(f"ADK Agent run failed: {e}")
-            raise Exception(f"Google ADK Agent execution failed: {e}. Check GEMINI_API_KEY configuration.")
+            raise Exception(f"Google ADK Agent execution failed: {e}. Check Vertex AI configuration (GOOGLE_CLOUD_PROJECT / GOOGLE_APPLICATION_CREDENTIALS).")
         
         # Parse the result text as SprintPlan
         logger.info(f"Sprint plan raw output received, parsing...")
